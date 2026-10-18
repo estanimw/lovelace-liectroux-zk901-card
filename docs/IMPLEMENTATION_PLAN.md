@@ -2,9 +2,11 @@
 
 Fecha: 2026-10-18. Base del fork: `5b3dc1b`, rama `master`.
 
+Revisión posterior: paquete local 0.2.0 con recuperación tras recargar la integración y conservación de actualizaciones de catálogo durante el guardado. Pendiente de instalar y aceptar con el robot según la guía.
+
 ## Objetivo y alcance acordado
 
-La próxima iteración entrega una tarjeta funcional completa, su backend compatible y los archivos listos para instalar en el Home Assistant del propietario. No termina con una demo, botones sin conexión, edición sin guardado, configuración manual de coordenadas ni tareas de implementación trasladadas a otra entrega.
+Esta iteración entrega una tarjeta funcional completa, su backend compatible y los archivos listos para instalar en el Home Assistant del propietario. No termina con una demo, botones sin conexión, edición sin guardado, configuración manual de coordenadas ni tareas de implementación trasladadas a otra entrega.
 
 Decisiones confirmadas por el propietario:
 
@@ -28,6 +30,7 @@ Consulta de solo lectura realizada el 2026-10-18:
 - Configuración de HA en `/config`; dashboards en modo storage.
 - Entidad `vacuum.liectroux_zk901`, batería, selector y botón existentes.
 - En `panel-general` conviven la tarjeta nativa de comandos y `custom:liectroux-zk901-zone-editor`.
+- Comprobación adicional de solo lectura del HA conectado (2026-10-18): la entrada `liectroux_zk901` está cargada, pero el registro de servicios solo ofrece `clean_area` y el único recurso Liectroux es `/local/liectroux-zk901/liectroux-zk901-zone-editor.js?v=3`. El ZIP de esta iteración todavía no está instalado en esa instancia.
 - La integración local tiene `manifest.json` con versión `0.1.0`; esto es la versión del código disponible en este workspace, no una afirmación de la versión de todos los archivos desplegados en HA.
 
 Antes de implementar se contrastarán la versión instalada y la API disponible con las fuentes locales. Se preparará al inicio un entorno de pruebas compatible con HA 2026.9.2/Python 3.14. Una incompatibilidad de entorno se resuelve en ese momento con el propietario; no se deja para la entrega.
@@ -217,9 +220,9 @@ Si aparece una limitación real de firmware o un bloqueo que cambia el alcance, 
 - Instrucciones de instalación, actualización, reversión y comprobación funcional completas; README final sin avisos de funciones incluidas todavía pendientes.
 - Actualizar `INSTALLATION.md` y sustituir el ejemplo sintético `smoke_config.yaml` por la configuración real mínima; los datos simulados que sigan siendo útiles quedan en fixtures de pruebas, no en los pasos de instalación.
 
-La integración Python y la tarjeta tienen ahora una sola fuente canónica en este repositorio. `npm run package` compila el frontend y `scripts/package-release.py` genera el ZIP conjunto, manifest y hashes usando únicamente archivos del checkout; no depende de una carpeta hermana. La misma revisión Git identifica ambos componentes.
+La integración Python y la tarjeta tienen una sola fuente canónica en este repositorio. `npm run package` compila el frontend y `scripts/package-release.py` genera el ZIP conjunto, manifest de compatibilidad y hashes usando únicamente archivos del checkout; no depende de una carpeta hermana. El manifest incluye versiones de frontend/backend, API, Home Assistant probado, commit, estado modificado y hashes de todos los archivos del ZIP.
 
-Los workflows de build y release ya ejecutan las pruebas Python y generan/publican los cuatro artefactos. Publicar en GitHub o hacer push sigue siendo una acción separada. El paquete local basta para instalar y probar; el empaquetado actual es infraestructura de distribución y no significa que se haya implementado el alcance funcional de esta iteración.
+Los workflows de build y release ejecutan pruebas Python, generan el paquete y ejecutan los flujos Playwright en Chromium. El workflow de build guarda artefactos y el workflow de release adjunta los archivos a una release publicada por el propietario. Crear una release o hacer push sigue siendo una acción separada. El paquete local basta para instalar y probar; no se ha instalado en Home Assistant como parte de esta implementación.
 
 Las [alternativas de instalación](INSTALLATION_OPTIONS.md) describen un futuro instalador desde releases y un posible actualizador propio. Ninguno se implementa implícitamente al reorganizar el repositorio ni reemplaza la comprobación de compatibilidad del producto.
 
@@ -235,19 +238,32 @@ Las [alternativas de instalación](INSTALLATION_OPTIONS.md) describen un futuro 
 
 El frontend detectará API incompatible y explicará qué paquete actualizar. No usará datos de prueba ni se limitará silenciosamente a media funcionalidad.
 
+## Estado de implementación — 2026-10-18
+
+| Etapa | Estado en el checkout | Evidencia / límite |
+|---|---|---|
+| 0. Preparación | Implementada | Entorno de pruebas pinneado a Home Assistant 2026.9.2; integración y tarjeta comparten fuente en este repositorio; el paquete describe compatibilidad. |
+| 1. Backend | Implementada y probada con HA real de CI | Coordinador compartido, timestamps separados, snapshot/refresh/suscripción y `clean_areas` con validación y un único compuesto; se conserva el servicio individual. No altera el encoding local. |
+| 2. Tarjeta de uso diario | Implementada en la fuente | Configuración mínima por entidad, estado/pose/zonas, selección, controles y acciones cableadas a la integración. Recorrido del navegador verifica servicios y respuestas con backend stateful simulado. |
+| 3. Edición completa | Implementada en la fuente | Crear, editar, mover, vértices, renombrar, tipo, eliminar, deshacer, descarte, persistencia, conflicto e incertidumbre cubiertos por los recorridos simulados. |
+| 4. Verificación | Automatización implementada; aceptación en HA/robot pendiente | Hay pruebas de cliente, API en Home Assistant 2026.9.2, Chromium, permisos, reconexión, dos tarjetas/pestañas, anchos adaptables y paquete. El propietario aún debe instalar/aceptar en su HA y confirmar la conducta física multizona. |
+| 5. Empaquetado | Implementada; artefactos locales generados y checksums verificados | Scripts producen ZIP, JS, manifest y checksums; guías de instalación, actualización, rollback y aceptación están listas. No se publicó ni instaló. |
+
+La funcionalidad de software ya no queda trasladada a otra iteración. La evidencia simulada no confirma el firmware: la limpieza física de varias zonas sigue siendo una puerta de aceptación explícita. La edición guarda en el catálogo real, por lo que la lista de instalación pide conservar la recuperación antes de validar el flujo en HA.
+
 ## Definición de terminado
 
-La entrega está lista cuando:
+El trabajo de código y empaquetado está listo cuando:
 
 - Todas las funciones de este alcance están implementadas y conectadas al backend; no hay botones decorativos ni TODOs funcionales.
 - Configuración mínima por entidad, UI de configuración y actualización en vivo funcionan sin cámara/calibración.
 - Multizona usa un solo comando validado; CRUD conserva su transacción y verificación.
-- Se resolvió con el operador la validación física requerida para multizona y cualquier incompatibilidad detectada; la evidencia se etiqueta con su nivel real.
+- El operador valida en el robot la operación multizona y confirma cualquier incompatibilidad detectada; la evidencia se etiqueta con su nivel real.
 - Pruebas apropiadas, build reproducible, revisión visual y compatibilidad HA objetivo están documentados.
 - Backend y frontend compatibles están empaquetados, con archivos y pasos exactos de instalación, prueba y rollback.
 - No cambian entidades ni credenciales, y la instalación anterior sigue siendo recuperable.
 
-Esto no promete eliminar toda incertidumbre del firmware ni sustituye la aceptación del propietario en su instalación. Sí impide dar por terminada una iteración que todavía requiera implementar, cablear o resolver una función acordada.
+La aceptación física no puede inferirse desde este checkout. Hasta que se registre esa evidencia, el estado del protocolo multizona permanece **pendiente de validación física** aunque la implementación y el paquete estén listos. Esto no promete eliminar toda incertidumbre del firmware ni sustituye la aceptación del propietario en su instalación.
 
 ## Referencias
 

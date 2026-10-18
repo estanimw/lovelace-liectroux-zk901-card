@@ -75,6 +75,14 @@ class ZK901AreaUncertain(ZK901Error):
         self.phase = phase
 
 
+class ZK901CleanUncertain(ZK901Error):
+    """The spatial-clean command was sent but its compound ACK was lost."""
+
+    def __init__(self, phase: str) -> None:
+        super().__init__("No se pudo confirmar el inicio de limpieza; resultado incierto")
+        self.phase = phase
+
+
 def area_catalog_revision(catalog: dict) -> str:
     """Hash estable del mapId y la colección completa devuelta por 21004."""
     try:
@@ -214,6 +222,26 @@ def cleanable_areas(areas: object) -> list[dict]:
         seen.add(area_id)
         chosen.append(area)
     return chosen
+
+
+def validate_clean_area_ids(area_ids: object) -> list[int]:
+    """Validate an ordered, non-empty list of persisted area identifiers."""
+    if not isinstance(area_ids, list) or not area_ids:
+        raise ValueError("area_ids debe ser una lista no vacía")
+    normalized: list[int] = []
+    seen: set[int] = set()
+    for area_id in area_ids:
+        if (
+            not isinstance(area_id, int)
+            or isinstance(area_id, bool)
+            or area_id <= 0
+        ):
+            raise ValueError("cada area_id debe ser un entero positivo")
+        if area_id in seen:
+            raise ValueError(f"el area_id {area_id} está duplicado")
+        seen.add(area_id)
+        normalized.append(area_id)
+    return normalized
 
 
 def area_option(area: dict) -> str:
@@ -619,7 +647,14 @@ class ZK901Client:
         return self._call(lambda: self._delete_area(area_id, timeout), timeout)
 
     def clean_area(self, area_id: int, timeout: float = 5.0) -> dict:
-        return self._call(lambda: self._clean_area(area_id, timeout), timeout)
+        return self.clean_areas([area_id], timeout=timeout)
+
+    def clean_areas(self, area_ids: list[int], timeout: float = 10.0) -> dict:
+        """Limpia una selección completa con un solo 30000."""
+        return self._call(
+            lambda: self._clean_areas(area_ids, timeout),
+            timeout=timeout * 2 + 2,
+        )
 
     def clean_area_by_name(self, tag: str, timeout: float = 5.0) -> dict:
         return self._call(lambda: self._clean_area_by_name(tag, timeout), timeout)
@@ -1232,18 +1267,32 @@ class ZK901Client:
         return self._save_areas(areas, state["map_id"], timeout)
 
     def _clean_area(self, area_id: int, timeout: float) -> dict:
+        return self._clean_areas([area_id], timeout)
+
+    def _clean_areas(self, area_ids: object, timeout: float) -> dict:
+        requested = validate_clean_area_ids(area_ids)
         state = self._get_areas(timeout)
-        area = next(
-            (item for item in state["areas"] if item.get("id") == area_id),
-            None,
-        )
-        if area is None:
-            raise ValueError(f"la zona {area_id} no existe")
-        if area.get("active") == "forbid":
-            raise ValueError(f"la zona {area_id} está prohibida y no se puede limpiar")
+        resolved: list[int] = []
+        for area_id in requested:
+            matches = [
+                area
+                for area in state["areas"]
+                if isinstance(area, dict) and area.get("id") == area_id
+            ]
+            if not matches:
+                raise ValueError(f"la zona {area_id} no existe en el catálogo actual")
+            if len(matches) != 1:
+                raise ValueError(f"el ID {area_id} está duplicado en el catálogo")
+            area = matches[0]
+            active = area.get("active")
+            if active == "forbid":
+                raise ValueError(f"la zona {area_id} está prohibida y no se puede limpiar")
+            if active not in {"normal", "depth"}:
+                raise ValueError(f"el tipo de la zona {area_id} no admite limpieza")
+            resolved.append(area_id)
         return self._start_spatial_clean(
             map_id=state["map_id"],
-            clean_ids=[area_id, -3],
+            clean_ids=[*resolved, -3],
             timeout=timeout,
         )
 
@@ -1255,13 +1304,7 @@ class ZK901Client:
         if len(matches) > 1:
             raise ValueError(f"varias zonas tienen el nombre {tag!r}")
         area = matches[0]
-        if area.get("active") == "forbid":
-            raise ValueError("una zona prohibida no se puede limpiar")
-        return self._start_spatial_clean(
-            map_id=state["map_id"],
-            clean_ids=[area["id"], -3],
-            timeout=timeout,
-        )
+        return self._clean_areas([area.get("id")], timeout)
 
     def _full_clean_spatial(self, timeout: float) -> dict:
         state = self._get_areas(timeout)
@@ -1313,6 +1356,12 @@ class ZK901Client:
             },
             1,
         )
-        self._send_payload(payload)
-        response = self._wait_for(_match_info(30000, request_ts), timeout)
+        try:
+            self._send_payload(payload)
+        except Exception as err:
+            raise ZK901CleanUncertain("send") from err
+        try:
+            response = self._wait_for(_match_info(30000, request_ts), timeout)
+        except (ZK901Timeout, ZK901ConnectionError) as err:
+            raise ZK901CleanUncertain("ack") from err
         return _validate_compound(response)

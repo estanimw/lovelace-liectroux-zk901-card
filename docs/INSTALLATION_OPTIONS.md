@@ -4,9 +4,9 @@ Contexto: Home Assistant Container 2026.9.2. La integración y la tarjeta se des
 
 ## Qué está preparado hoy
 
-`npm run package` genera un ZIP conjunto con las rutas que HA espera, el JS por separado, un manifest de versiones y `SHA256SUMS`. Los workflows de build/release generan los mismos artefactos. No se publicó una release ni se implementó todavía un instalador o actualizador remoto.
+`npm run package` genera un ZIP conjunto con las rutas que HA espera, el JS por separado, un manifest de compatibilidad (frontend, backend, API y HA probado) y `SHA256SUMS`. Los workflows de build/release generan los mismos artefactos. No se publicó una release ni se implementó un instalador o actualizador remoto; la instalación y actualización son manuales y están descritas en [INSTALLATION.md](INSTALLATION.md).
 
-El archivo Python se debe instalar en `custom_components/liectroux_zk901/` y el frontend debe estar servido y registrado como recurso. La configuración mediante **Añadir integración** no descarga por sí sola el código de este repositorio. En nuestra versión objetivo, un enlace GitHub no sustituye esos pasos.
+El archivo Python se debe instalar en `custom_components/liectroux_zk901/` y el frontend debe estar servido y registrado como recurso. La tarjeta completa usa la suscripción y los servicios de la integración incluida en el mismo paquete. La configuración mediante **Añadir integración** no descarga por sí sola el código de este repositorio. En nuestra versión objetivo, un enlace GitHub no sustituye esos pasos.
 
 Referencias: [ubicación de custom integrations](https://contributors.home-assistant.io/core/integrations/file-structure/) y [registro de recursos](https://contributors.home-assistant.io/frontend/custom-ui/resources/).
 
@@ -15,14 +15,14 @@ Referencias: [ubicación de custom integrations](https://contributors.home-assis
 | Alternativa | Instalación inicial | Actualizaciones | Trabajo adicional |
 |---|---|---|---|
 | ZIP conjunto | Descargar, comprobar y colocar las dos carpetas en la configuración de HA. | Repetir con otra versión y conservar copia anterior. | El empaquetado ya está implementado; la copia sigue siendo manual. |
-| Instalador desde releases en el host de HA | Ejecutar un comando con versión y ruta real de la configuración. | El mismo comando descarga e instala otra versión. | Desarrollar el instalador, backup y rollback. Es la recomendación inicial. |
+| Instalador desde releases en el host de HA | Ejecutar un comando con versión y ruta real de la configuración. | El mismo comando descarga e instala otra versión. | Desarrollar el instalador, backup y rollback. Puede simplificar futuras actualizaciones. |
 | Despliegue desde la Mac por SSH | Un comando local envía el paquete al host y lo instala en su configuración. | Repetir el comando con una versión elegida. | Acceso SSH y ruta del volumen; implementar el script de despliegue. |
 | Actualizador propio dentro de HA | Primera instalación mediante ZIP o script. | Una entidad de actualización muestra releases y permite instalar desde la UI. | Más implementación y mantenimiento; HA aporta la interfaz, no el actualizador de este fork. |
 | Checkout/montajes Docker | Preparar un checkout versionado y montar los directorios de código/bundle en HA. | Cambiar de revisión, preparar el JS compilado y reiniciar. | Adecuado para desarrollo; requiere manejar Git, permisos y Docker. |
 
 ## Recomendación para uso personal
 
-Preparar un **instalador versionado que consuma las releases de GitHub**. Su comportamiento debería ser:
+Como mejora posterior, se puede preparar un **instalador versionado que consuma las releases de GitHub**. Su comportamiento debería ser:
 
 1. Recibir una versión explícita y la ruta del directorio de configuración del host, sin suponer que la ruta del host sea `/config`.
 2. Descargar el ZIP y sus hashes de esa release. Inspeccionar/descomprimir primero en un directorio temporal y comprobar su estructura.

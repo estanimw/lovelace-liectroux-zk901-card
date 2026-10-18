@@ -1,3 +1,4 @@
-# Offline client tests; HA runtime dependencies remain in manifest.json.
+# Runtime/API compatibility tests use the Home Assistant target version.
 pytest>=8.1,<10
+homeassistant==2026.9.2
 tinytuya==1.20.0

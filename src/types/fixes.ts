@@ -1,12 +1,11 @@
 import { HomeAssistant, NumberFormat, TimeFormat } from "custom-card-helpers";
-import { Connection } from "home-assistant-js-websocket";
 
 export interface HomeAssistantFixed extends Omit<HomeAssistant, "connection"> {
     hassUrl(path?): string;
 
     entities: { [id: string]: EntityRegistryDisplayEntry };
 
-    connection: Connection;
+    connection: HomeAssistant["connection"];
     locale: FrontendLocaleDataFixed;
 }
 

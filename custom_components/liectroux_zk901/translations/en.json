@@ -75,6 +75,16 @@
           "description": "The zone's tag field. It must identify exactly one zone."
         }
       }
+    },
+    "clean_areas": {
+      "name": "Clean zones",
+      "description": "Clean one or more saved zones in a single robot command. Every ID must resolve to one supported, non-forbidden zone.",
+      "fields": {
+        "area_ids": {
+          "name": "Zone IDs",
+          "description": "Ordered list of positive zone IDs from the current catalog."
+        }
+      }
     }
   }
 }

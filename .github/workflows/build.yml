@@ -33,6 +33,11 @@ jobs:
           npm ci
           npm run package
 
+      - name: Browser flows
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:browser
+
       - name: Archive built file
         uses: actions/upload-artifact@v4
         with:

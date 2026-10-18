@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .client import (
     ZK901AreaConflict,
@@ -18,15 +19,27 @@ from .client import (
     area_catalog_revision,
 )
 from .const import DOMAIN
-from .coordinator import ZK901Coordinator
+from .coordinator import ZK901Coordinator, card_update_signal
 
 _GET_TYPE = f"{DOMAIN}/zone_editor/get"
 _APPLY_TYPE = f"{DOMAIN}/zone_editor/apply"
+_CARD_SUBSCRIBE_TYPE = f"{DOMAIN}/card/subscribe"
+_CARD_REFRESH_TYPE = f"{DOMAIN}/card/refresh"
 
 
 def _not_bool(value: object) -> object:
     if isinstance(value, bool):
         raise vol.Invalid("boolean is not a map ID")
+    return value
+
+
+def _positive_area_id(value: object) -> object:
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or value <= 0
+    ):
+        raise vol.Invalid("area_id debe ser un entero positivo")
     return value
 
 
@@ -41,10 +54,20 @@ _APPLY_SCHEMA = {
     vol.Required("base_map_id"): vol.All(vol.Any(str, int), _not_bool),
     vol.Required("base_revision"): vol.Match(r"^[0-9a-f]{64}$"),
     vol.Required("operation"): vol.In({"create", "update", "delete"}),
-    vol.Optional("area_id"): int,
+    vol.Optional("area_id"): _positive_area_id,
     vol.Optional("tag"): str,
     vol.Optional("active"): str,
     vol.Optional("vertexs"): list,
+}
+
+_CARD_SUBSCRIBE_SCHEMA = {
+    vol.Required("type"): _CARD_SUBSCRIBE_TYPE,
+    vol.Required("entity_id"): cv.entity_id,
+}
+
+_CARD_REFRESH_SCHEMA = {
+    vol.Required("type"): _CARD_REFRESH_TYPE,
+    vol.Required("entity_id"): cv.entity_id,
 }
 
 
@@ -52,6 +75,8 @@ def register_zone_editor_commands(hass: HomeAssistant) -> None:
     """Register the editor API once when the integration domain is set up."""
     websocket_api.async_register_command(hass, websocket_get_area_catalog)
     websocket_api.async_register_command(hass, websocket_apply_area_edit)
+    websocket_api.async_register_command(hass, websocket_subscribe_card)
+    websocket_api.async_register_command(hass, websocket_refresh_card)
 
 
 def _coordinator_for_entity(
@@ -116,7 +141,121 @@ async def websocket_get_area_catalog(
             "revision": revision,
             "areas": catalog["areas"],
             "pose": coordinator.editor_pose(),
-            "observed_at": datetime.now(timezone.utc).isoformat(),
+            "observed_at": coordinator.areas_observed_at,
+        },
+    )
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(_CARD_SUBSCRIBE_SCHEMA)
+@websocket_api.async_response
+async def websocket_subscribe_card(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict,
+) -> None:
+    """Subscribe to coordinator snapshots without adding a robot socket."""
+    coordinator = _coordinator_for_entity(hass, msg["entity_id"])
+    if coordinator is None:
+        connection.send_error(msg["id"], "not_found", "ZK901 entity not found")
+        return
+
+    generation = uuid4().hex
+    sequence = 0
+    state = {"ready": False, "changed": False}
+
+    def forward_update() -> None:
+        nonlocal coordinator, generation, sequence
+        current = _coordinator_for_entity(hass, msg["entity_id"])
+        if current is not None and current is not coordinator:
+            coordinator = current
+            generation = uuid4().hex
+            sequence = 0
+        if not state["ready"]:
+            state["changed"] = True
+            return
+        sequence += 1
+        connection.send_event(
+            msg["id"],
+            coordinator.card_snapshot(
+                entity_id=msg["entity_id"],
+                generation=generation,
+                sequence=sequence,
+            ),
+        )
+
+    unsubscribe = async_dispatcher_connect(
+        hass, card_update_signal(coordinator.entry_id), forward_update
+    )
+    connection.subscriptions[msg["id"]] = unsubscribe
+
+    try:
+        catalog = await hass.async_add_executor_job(
+            coordinator.client.get_areas, 10.0
+        )
+        coordinator.set_area_catalog(catalog)
+    except ZK901ProtocolError:
+        coordinator.set_area_error("invalid_catalog")
+    except ZK901Error:
+        coordinator.set_area_error("unavailable")
+    except Exception:
+        coordinator.set_area_error("invalid_catalog")
+
+    result = coordinator.card_snapshot(
+        entity_id=msg["entity_id"], generation=generation, sequence=sequence
+    )
+    result["ok"] = True
+    connection.send_result(msg["id"], result)
+    state["ready"] = True
+    if state["changed"]:
+        state["changed"] = False
+        forward_update()
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(_CARD_REFRESH_SCHEMA)
+@websocket_api.async_response
+async def websocket_refresh_card(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict,
+) -> None:
+    """Explicitly refresh 20001 and 21004 from the existing LAN client."""
+    coordinator = _coordinator_for_entity(hass, msg["entity_id"])
+    if coordinator is None:
+        _send(connection, msg, {"ok": False, "error": "not_found"})
+        return
+
+    try:
+        status = await hass.async_add_executor_job(coordinator.client.get_status, 10.0)
+    except ZK901Error:
+        _send(connection, msg, {"ok": False, "error": "unavailable"})
+        return
+    try:
+        catalog = await hass.async_add_executor_job(
+            coordinator.client.get_areas, 10.0
+        )
+    except ZK901ProtocolError:
+        coordinator.set_status(status)
+        coordinator.set_area_error("invalid_catalog")
+        _send(connection, msg, {"ok": False, "error": "invalid_catalog"})
+        return
+    except ZK901Error:
+        coordinator.set_status(status)
+        coordinator.set_area_error("unavailable")
+        _send(connection, msg, {"ok": False, "error": "unavailable"})
+        return
+
+    coordinator.set_status(status)
+    coordinator.set_area_catalog(catalog)
+    _send(
+        connection,
+        msg,
+        {
+            "ok": True,
+            **coordinator.card_snapshot(
+                entity_id=msg["entity_id"], generation=uuid4().hex, sequence=0
+            ),
         },
     )
 
@@ -205,5 +344,6 @@ async def websocket_apply_area_edit(
             "areas": result["areas"],
             "operation": result["operation"],
             "area_id": result.get("area_id"),
+            "observed_at": coordinator.areas_observed_at,
         },
     )

@@ -320,6 +320,149 @@ def test_forbid_zone_is_not_sent(linked):
     assert sent_types == [21004]
 
 
+def test_multi_zone_clean_uses_one_ordered_compound(linked):
+    robot, device, holder = linked
+
+    def handler(obj):
+        ts = obj["dInfo"]["ts"]
+        if obj["infoType"] == 21004:
+            return [
+                _ok(
+                    21004,
+                    ts,
+                    {
+                        "mapId": 336,
+                        "value": [
+                            {"id": 1, "tag": "Cocina", "active": "normal"},
+                            {"id": 2, "tag": "Dormitorio", "active": "depth"},
+                        ],
+                    },
+                )
+            ]
+        assert obj["infoType"] == 30000
+        cmds = obj["data"]["cmds"]
+        assert [cmd["infoType"] for cmd in cmds] == [21023, 21005]
+        assert cmds[0]["data"]["mapId"] == 336
+        assert cmds[0]["data"]["cleanId"] == [2, 1, -3]
+        assert cmds[0]["data"]["extraAreas"] == []
+        assert cmds[1]["data"] == {"userId": UID, "sn": SN, "mode": "reAppointClean"}
+        return [
+            _ok(
+                30000,
+                ts,
+                {
+                    "cmds": [
+                        {"message": "ok", "infoType": "21023"},
+                        {"message": "ok", "infoType": "21005"},
+                    ]
+                },
+            )
+        ]
+
+    holder["handler"] = handler
+    response = robot.clean_areas([2, 1], timeout=2)
+
+    assert response["message"] == "ok"
+    sent_types = [
+        decode_sent(value)["infoType"]
+        for index, value, _nowait in device.sent
+        if index == 102
+    ]
+    assert sent_types == [21004, 30000]
+
+
+@pytest.mark.parametrize("area_ids", [[], [1, 1], [True], [0], [-1], ["1"]])
+def test_invalid_multi_zone_selection_sends_nothing(linked, area_ids):
+    robot, device, _holder = linked
+
+    with pytest.raises(ValueError):
+        robot.clean_areas(area_ids, timeout=2)
+
+    assert not [
+        value
+        for index, value, _nowait in device.sent
+        if index in (3, 102)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("areas", "message"),
+    [
+        ([], "no existe"),
+        ([{"id": 1, "tag": "Cocina", "active": "forbid"}], "prohibida"),
+        (
+            [
+                {"id": 1, "tag": "Cocina", "active": "normal"},
+                {"id": 1, "tag": "Otra", "active": "normal"},
+            ],
+            "duplicado",
+        ),
+        ([{"id": 1, "tag": "Cocina", "active": "other"}], "no admite"),
+    ],
+)
+def test_invalid_fresh_multi_zone_catalog_sends_nothing(linked, areas, message):
+    robot, device, holder = linked
+
+    def handler(obj):
+        assert obj["infoType"] == 21004
+        return [_ok(21004, obj["dInfo"]["ts"], {"mapId": 336, "value": areas})]
+
+    holder["handler"] = handler
+    with pytest.raises(ValueError, match=message):
+        robot.clean_areas([1], timeout=2)
+
+    sent_types = [
+        decode_sent(value)["infoType"]
+        for index, value, _nowait in device.sent
+        if index == 102
+    ]
+    assert sent_types == [21004]
+
+
+def test_multi_zone_partial_compound_failure_is_not_success(linked):
+    robot, device, holder = linked
+
+    def handler(obj):
+        ts = obj["dInfo"]["ts"]
+        if obj["infoType"] == 21004:
+            return [
+                _ok(
+                    21004,
+                    ts,
+                    {
+                        "mapId": 336,
+                        "value": [
+                            {"id": 1, "tag": "Cocina", "active": "normal"},
+                            {"id": 2, "tag": "Dormitorio", "active": "normal"},
+                        ],
+                    },
+                )
+            ]
+        return [
+            _ok(
+                30000,
+                ts,
+                {
+                    "cmds": [
+                        {"message": "ok", "infoType": "21023"},
+                        {"message": "fail", "infoType": "21005"},
+                    ]
+                },
+            )
+        ]
+
+    holder["handler"] = handler
+    with pytest.raises(client_mod.ZK901ProtocolError, match="21005"):
+        robot.clean_areas([1, 2], timeout=2)
+
+    sent_types = [
+        decode_sent(value)["infoType"]
+        for index, value, _nowait in device.sent
+        if index == 102
+    ]
+    assert sent_types == [21004, 30000]
+
+
 def test_zone_by_name_and_cleanable_catalog():
     areas = [
         {"id": 1, "tag": "Cocina", "active": "normal"},

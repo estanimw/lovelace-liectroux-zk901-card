@@ -126,3 +126,7 @@ class ZK901Vacuum(ZK901Entity, StateVacuumEntity):
             await self._async_command(self.coordinator.client.clean_area, area_id)
             return
         await self._async_command(self.coordinator.client.clean_area_by_name, name)
+
+    async def async_clean_persisted_areas(self, area_ids: list[int]) -> None:
+        """Start one compound cleaning operation for the selected zones."""
+        await self._async_command(self.coordinator.client.clean_areas, area_ids)

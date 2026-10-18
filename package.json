@@ -1,7 +1,7 @@
 {
     "name": "liectroux-zk901-map-card",
-    "version": "0.1.0-dev.0",
-    "description": "Liectroux ZK901 map card for Home Assistant (adaptation in progress)",
+    "version": "0.2.0",
+    "description": "Mapa, controles y editor de zonas para la integraci\u00f3n local Liectroux ZK901 de Home Assistant",
     "keywords": [
         "home-assistant",
         "homeassistant",
@@ -15,12 +15,8 @@
     "author": "Piotr Machowski <piotr.machowski.dev@gmail.com>",
     "license": "MIT",
     "dependencies": {
-        "change-perspective": "^1.0.1",
         "custom-card-helpers": "^1.9.0",
-        "home-assistant-js-websocket": "^8.0.1",
-        "lit": "^2.0.0",
-        "pointer-tracker": "^2.4.0",
-        "transformation-matrix": "^2.8.0"
+        "lit": "^2.0.0"
     },
     "devDependencies": {
         "@babel/core": "^7.15.0",
@@ -34,6 +30,7 @@
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-import": "^2.24.0",
         "eslint-plugin-prettier": "^4.0.0",
+        "playwright": "^1.62.0",
         "prettier": "^2.4.1",
         "rollup": "^2.58.0",
         "rollup-plugin-babel": "^4.4.0",
@@ -48,9 +45,10 @@
         "start": "rollup -c rollup.config.dev.js --watch",
         "build": "npm run lint && npm run rollup && npm run add-version",
         "add-version": "node scripts/add-version.cjs",
-        "lint": "eslint src/*.ts",
+        "lint": "eslint src/zk901-card.ts src/editor.ts src/data/zk901.ts src/model/zone-draft.ts src/model/zone-geometry.ts src/types/fixes.ts",
         "rollup": "rollup -c",
-        "package": "npm run build && python3 scripts/package-release.py"
+        "package": "npm run build && python3 scripts/package-release.py",
+        "test:browser": "node --test tests/browser/card-flows.test.mjs"
     },
     "engines": {
         "node": "22.x"

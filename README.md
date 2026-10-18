@@ -1,87 +1,53 @@
 # Liectroux ZK901 Map Card
 
-Integración local y tarjeta personalizada de Home Assistant para la Liectroux ZK901, en desarrollo. Es un fork de [Lovelace Xiaomi Vacuum Map Card](https://github.com/PiotrMachowski/lovelace-xiaomi-vacuum-map-card), de Piotr Machowski, adaptado para trabajar con nuestra integración local `liectroux_zk901`.
+Tarjeta Lovelace y custom integration de Home Assistant para controlar localmente una Liectroux ZK901. El repositorio mantiene juntos el frontend y el backend que necesita; no depende de Laser Robot, de un script externo ni de HACS.
 
-## Qué funciona hoy
+## Funciones
 
-- Identidad propia: `custom:liectroux-zk901-map-card`.
-- Visualización de una imagen calibrada, zoom y desplazamiento.
-- Editor básico de configuración y registros internos separados para convivir con otras tarjetas.
-- Compilación reproducible con Node.js 22 y generación de un único archivo JavaScript instalable.
-- Configuración sintética de prueba, sin acciones de limpieza ni escrituras al robot.
+- Plano vectorial de zonas persistidas y posición/orientación reciente del robot; no necesita cámara, imagen ni calibración.
+- Inicio/continuación, pausa, detención, retorno a base, intensidad y limpieza de la posición actual.
+- Selección de varias zonas y un único servicio `liectroux_zk901.clean_areas`.
+- Edición de zonas desde la tarjeta: crear, renombrar, cambiar tipo, mover y ajustar vértices, deshacer, descartar y eliminar.
+- Conflictos de catálogo y guardados de resultado incierto se muestran sin sobrescribir ni reenviar silenciosamente cambios.
+- Editor visual de configuración, diseño adaptable y etiquetas en español.
 
-**Todavía no consulta ni edita las zonas de la ZK901.** Necesita `map_source` y `calibration_source`; una configuración con solo `entity` aún no es suficiente. El funcionamiento con datos simulados fue comprobado en Chromium; la instalación de este fork en HA sigue pendiente.
+Las áreas prohibidas y objetos del sistema no se ofrecen como destinos de limpieza. La tarjeta usa las coordenadas que expone la integración para dibujar las zonas; no representa LiDAR, paredes ni obstáculos.
 
-El alcance del fork es la ZK901. Se retiraron los presets y plantillas de comandos para otras marcas; la base genérica `default` no incluye modos de limpieza preconfigurados. No se deben trasladar configuraciones de Xiaomi, Roborock u otros modelos a este robot.
+## Compatibilidad
 
-## Relación con la integración actual
+La versión local preparada para instalar es **0.2.0**, tanto de la tarjeta como de la integración. Recupera las suscripciones tras recargar la integración y conserva los cambios de catálogo recibidos durante un guardado.
 
-```text
-Tarjeta del dashboard → servicios/API autenticada de HA → integración Python → ZK901 por LAN
-```
+El paquete se genera con versiones coordinadas de tarjeta, integración y API. El manifest dentro de cada ZIP declara las versiones frontend/backend, `card_api_version` y la versión de Home Assistant probada. El entorno de CI prueba Home Assistant 2026.9.2 y Python 3.14; consulta `dist/release-manifest.json` para el paquete concreto.
 
-Este repositorio contiene ambos componentes. `custom_components/liectroux_zk901/` es la fuente canónica de la integración y su controlador local (`client.py`); `src/` contiene la tarjeta. La integración sigue creando la entidad `vacuum`, batería, selector y botón, y es la única responsable de conectarse al robot y validar los comandos. No hay que ejecutar un script ni un listener externo para usar HA.
+La forma del comando multizona está cubierta por pruebas simuladas. La aceptación física multizona en este firmware queda pendiente de ejecutarse en el robot y no se infiere de que el ACK o las pruebas simuladas pasen.
 
-Las pruebas sin hardware están en `tests/`. La investigación, el material OEM y el provisioner Android permanecen en el workspace padre y no se distribuyen en este repositorio. La migración de las fuentes al fork no cambia comandos ni configuración en la instancia HA.
+## Instalar
 
-La tarjeta nueva se probará junto a `custom:liectroux-zk901-zone-editor`. Instalarla no requiere borrar la integración, sus entidades ni las zonas persistidas. El editor anterior se retirará del dashboard cuando el reemplazo esté validado.
+La tarjeta requiere instalar conjuntamente el ZIP que produce `npm run package`: integra los archivos de `custom_components/liectroux_zk901/` y `www/liectroux-zk901/`. No elimines ni vuelvas a crear la entrada de integración; la configuración, entidades y credenciales existentes se conservan.
 
-## Compilar
+- [Guía de instalación, actualización, aceptación y rollback](docs/INSTALLATION.md).
+- [Configuración mínima de la tarjeta](docs/smoke_config.yaml).
+- [Desarrollo, arquitectura y verificación](docs/DEVELOPMENT.md).
+- [Opciones de distribución sin HACS](docs/INSTALLATION_OPTIONS.md).
+- [Variables CSS](docs/css_variables.md).
 
-Requisitos: Node.js 22 (`.nvmrc`) y npm.
+## Desarrollo
+
+Requisitos: Node.js 22 y Python 3.14.
 
 ```sh
 npm ci
-npm run build
-```
-
-Archivo generado:
-
-```text
-dist/liectroux-zk901-map-card.js
-```
-
-El build ejecuta ESLint, Rollup/TypeScript e inserta la versión de `package.json`. El archivo compilado y `node_modules/` no se incluyen en Git. Home Assistant no necesita Node.js para cargar la tarjeta.
-
-## Pruebas y paquete conjunto
-
-Las pruebas del cliente y del empaquetado no contactan al robot:
-
-```sh
 python3 -m pip install -r requirements-dev.txt
 python3 -m pytest -q
+npm run build
+npm run test:browser
 npm run package
 ```
 
-El último comando compila la tarjeta y genera en `dist/`:
+`npm run package` crea `dist/liectroux-zk901-map-card.js`, `dist/liectroux-zk901-ha.zip`, `dist/release-manifest.json` y `dist/SHA256SUMS`. El ZIP solo incluye archivos de producción de la integración y el bundle. No incluye `.env`, datos locales, pruebas, cachés ni capturas. El build local no instala, publica ni hace push.
 
-- `liectroux-zk901-map-card.js`: la tarjeta compilada.
-- `liectroux-zk901-ha.zip`: integración y tarjeta con rutas relativas a la configuración de HA.
-- `release-manifest.json`: versiones, commit y hashes de los archivos incluidos.
-- `SHA256SUMS`: comprobación de los artefactos.
+El plan y el estado de aceptación están en [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). La investigación del protocolo, el material OEM y el provisioner Android permanecen en el workspace padre y no se distribuyen aquí.
 
-El ZIP incluye `custom_components/liectroux_zk901/` y `www/liectroux-zk901/`. Usa una lista de tipos/rutas de producción permitidos y excluye `.env`, cachés, pruebas y el JS fuente del editor anterior. El archivo legado sigue en las fuentes para la transición, pero no forma parte del nuevo paquete.
+## Licencia y origen
 
-El paquete corresponde al estado actual: **no convierte la tarjeta base en la implementación completa prevista**. Las versiones de integración y tarjeta se registran por separado hasta fijar el contrato de la próxima entrega.
-
-## Instalar y actualizar
-
-La instalación se hace copiando el JavaScript compilado a `www/liectroux-zk901/` de HA y registrándolo como recurso de tipo **JavaScript module**. Durante las pruebas se conservan la tarjeta y el recurso actuales.
-
-- [Guía de instalación, actualización y vuelta atrás](docs/INSTALLATION.md).
-- [Configuración de prueba sin acciones](docs/smoke_config.yaml).
-- [Desarrollo, arquitectura y verificación](docs/DEVELOPMENT.md).
-- [Opciones de instalación sin HACS](docs/INSTALLATION_OPTIONS.md).
-- [Variables CSS heredadas disponibles](docs/css_variables.md).
-
-Cuando se publique una release del fork, sus assets incluirán el ZIP conjunto, el JS separado, el manifest y los hashes. El workflow está preparado para generarlos; todavía no se publicó una release propia. Descargar el ZIP del código fuente o crear el fork no instala la tarjeta. Las actualizaciones son explícitas y el funcionamiento diario usa el archivo servido por HA, sin depender de GitHub.
-
-## Próxima iteración
-
-El [plan de implementación completo](docs/IMPLEMENTATION_PLAN.md) fija una entrega instalable de tarjeta e integración compatible: zonas y posición en vivo, controles diarios, limpieza de una o varias zonas y CRUD completo. Incluye criterios de aceptación, pruebas, empaquetado y migración conservando la instalación actual.
-
-El plan describe trabajo por realizar; las capacidades disponibles hoy siguen siendo las indicadas arriba. La siguiente iteración no incluye recorrido ni adquisición LiDAR/cloud.
-
-## Licencia y autoría
-
-Se conserva la [licencia MIT](LICENSE) y el copyright original de Piotr Machowski. La referencia completa del proyecto de origen permanece en [upstream](https://github.com/PiotrMachowski/lovelace-xiaomi-vacuum-map-card) y en la historia Git del fork; las demos, documentación por marca y configuraciones de mantenimiento del proyecto original se retiraron de esta copia.
+MIT, conservando la licencia y la atribución al proyecto base [Lovelace Xiaomi Vacuum Map Card](https://github.com/PiotrMachowski/lovelace-xiaomi-vacuum-map-card) de Piotr Machowski. Este fork tiene identidad, bundle y funciones ZK901 propios.

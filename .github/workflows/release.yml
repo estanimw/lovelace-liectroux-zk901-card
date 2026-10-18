@@ -34,6 +34,11 @@ jobs:
           npm version --git-tag-version=false --commit-hooks=false --allow-same-version "$RELEASE_TAG"
           npm run package
 
+      - name: Browser flows
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:browser
+
       - name: Upload build result to release
         uses: svenstaro/upload-release-action@v2
 

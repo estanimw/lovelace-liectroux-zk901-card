@@ -22,6 +22,8 @@ def test_package_excludes_local_data_and_contains_both_components(tmp_path):
     (root / "dist").mkdir()
     (root / "dist/card.js").write_text('console.info("v0.2.0");')
     (integration / "manifest.json").write_text(json.dumps({"domain": "liectroux_zk901", "version": "0.2.1"}))
+    (integration / "const.py").write_text("CARD_API_VERSION = 3\n")
+    (root / "requirements-dev.txt").write_text("homeassistant==2026.9.2\n")
     for name in ("__init__.py", "client.py"):
         (integration / name).write_text("# production source\n")
     for directory, name in (("", ".env"), ("__pycache__", "client.pyc"), ("www", "legacy.js")):
@@ -31,12 +33,18 @@ def test_package_excludes_local_data_and_contains_both_components(tmp_path):
     output = tmp_path / "release"
     metadata = packager.build_package(root, output)
     with zipfile.ZipFile(output / packager.ARCHIVE) as archive:
-        assert len(archive.namelist()) == 4
+        assert len(archive.namelist()) == 5
         assert "www/liectroux-zk901/liectroux-zk901-map-card.js" in archive.namelist()
         assert all(b"local-only-data" not in archive.read(name) for name in archive.namelist())
         assert all(not name.startswith("/") and ".." not in Path(name).parts for name in archive.namelist())
     assert metadata["card_version"] == "0.2.0"
     assert metadata["integration_version"] == "0.2.1"
+    assert metadata["compatibility"] == {
+        "frontend_version": "0.2.0",
+        "backend_version": "0.2.1",
+        "card_api_version": 3,
+        "home_assistant_tested": "2026.9.2",
+    }
     assert len((output / "SHA256SUMS").read_text().splitlines()) == 3
 
 

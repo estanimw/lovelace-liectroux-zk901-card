@@ -75,6 +75,16 @@
           "description": "Campo tag de la zona. Debe identificar una sola zona."
         }
       }
+    },
+    "clean_areas": {
+      "name": "Limpiar zonas",
+      "description": "Limpia una o varias zonas guardadas con un solo comando. Cada ID debe corresponder a una zona compatible y no prohibida.",
+      "fields": {
+        "area_ids": {
+          "name": "IDs de zonas",
+          "description": "Lista ordenada de IDs positivos del catálogo actual."
+        }
+      }
     }
   }
 }

@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 import zipfile
 
@@ -38,6 +39,27 @@ def _integration_files(directory: Path) -> dict[str, bytes]:
     return files
 
 
+def _compatibility(root: Path) -> dict[str, str | int]:
+    """Read the compatibility contract from the shipped sources and test pin."""
+    constants = (root / "custom_components" / DOMAIN / "const.py").read_text()
+    api_match = re.search(r"^CARD_API_VERSION\s*=\s*(\d+)\s*$", constants, re.MULTILINE)
+    if api_match is None:
+        raise ValueError("Could not determine the card API version from const.py")
+
+    requirements = (root / "requirements-dev.txt").read_text()
+    ha_match = re.search(r"^homeassistant==([^\s;]+)\s*$", requirements, re.MULTILINE)
+    if ha_match is None:
+        raise ValueError("Pin the tested Home Assistant version in requirements-dev.txt")
+    return {
+        "frontend_version": json.loads((root / "package.json").read_text())["version"],
+        "backend_version": json.loads(
+            (root / "custom_components" / DOMAIN / "manifest.json").read_text()
+        )["version"],
+        "card_api_version": int(api_match.group(1)),
+        "home_assistant_tested": ha_match.group(1),
+    }
+
+
 def build_package(root: Path, output: Path) -> dict:
     root = root.resolve()
     package = json.loads((root / "package.json").read_text())
@@ -66,10 +88,11 @@ def build_package(root: Path, output: Path) -> dict:
         commit, dirty = None, None
 
     metadata = {
-        "format_version": 1,
+        "format_version": 2,
         "card_version": package["version"],
         "integration_version": integration["version"],
         "integration_domain": DOMAIN,
+        "compatibility": _compatibility(root),
         "source_commit": commit,
         "source_modified": dirty,
         "archive": ARCHIVE,

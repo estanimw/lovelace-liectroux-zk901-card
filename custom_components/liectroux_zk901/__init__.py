@@ -11,11 +11,13 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, service
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
 from .client import ZK901Client, ZK901Error
 from .const import (
     ATTR_AREA_ID,
+    ATTR_AREA_IDS,
     ATTR_TAG,
     CONF_DEVICE_ID,
     CONF_HOST,
@@ -24,11 +26,39 @@ from .const import (
     CONF_UID,
     DOMAIN,
     SERVICE_CLEAN_AREA,
+    SERVICE_CLEAN_AREAS,
 )
-from .coordinator import ZK901Coordinator
+from .coordinator import ZK901Coordinator, card_update_signal
 from .zone_editor import register_zone_editor_commands
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _positive_area_ids(value: object) -> list[int]:
+    if not isinstance(value, list) or not value:
+        raise vol.Invalid("area_ids debe ser una lista no vacía")
+    seen: set[int] = set()
+    for area_id in value:
+        if (
+            not isinstance(area_id, int)
+            or isinstance(area_id, bool)
+            or area_id <= 0
+        ):
+            raise vol.Invalid("cada area_id debe ser un entero positivo")
+        if area_id in seen:
+            raise vol.Invalid(f"el area_id {area_id} está duplicado")
+        seen.add(area_id)
+    return value
+
+
+def _positive_area_id(value: object) -> object:
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or value <= 0
+    ):
+        raise vol.Invalid("area_id debe ser un entero positivo")
+    return value
 
 PLATFORMS = (
     Platform.VACUUM,
@@ -47,10 +77,18 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         SERVICE_CLEAN_AREA,
         entity_domain=VACUUM_DOMAIN,
         schema={
-            vol.Optional(ATTR_AREA_ID): vol.All(vol.Coerce(int), vol.Range(min=1)),
+            vol.Optional(ATTR_AREA_ID): _positive_area_id,
             vol.Optional(ATTR_TAG): cv.string,
         },
         func="async_clean_persisted_area",
+    )
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        SERVICE_CLEAN_AREAS,
+        entity_domain=VACUUM_DOMAIN,
+        schema={vol.Required(ATTR_AREA_IDS): _positive_area_ids},
+        func="async_clean_persisted_areas",
     )
     return True
 
@@ -65,7 +103,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         uid=data[CONF_UID],
         sn=data[CONF_SN],
     )
-    coordinator = ZK901Coordinator(hass, client)
+    coordinator = ZK901Coordinator(hass, client, entry)
     client.set_status_listener(coordinator.handle_status)
     try:
         await hass.async_add_executor_job(client.connect)
@@ -82,6 +120,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         await hass.async_add_executor_job(client.close)
         raise
+    # Existing WebSocket subscriptions survive an integration reload.
+    async_dispatcher_send(hass, card_update_signal(entry.entry_id))
     return True
 
 
@@ -90,6 +130,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         coordinator: ZK901Coordinator = entry.runtime_data
+        coordinator.mark_unloaded()
         await hass.async_add_executor_job(coordinator.client.close)
     else:
         _LOGGER.debug("no se pudieron descargar las plataformas")

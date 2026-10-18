@@ -9,7 +9,7 @@ import json from "@rollup/plugin-json";
 const port = process.env.PORT || 5000;
 
 export default {
-    input: ["src/xiaomi-vacuum-map-card.ts"],
+    input: ["src/zk901-card.ts"],
     output: {
         file: "dist/liectroux-zk901-map-card.js",
         format: "es",

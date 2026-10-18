@@ -1,61 +1,96 @@
-# Instalación en paralelo en Home Assistant
+# Instalar en Home Assistant Container
 
-## Alcance
+Esta guía instala en pareja la custom integration y la tarjeta, conservando la entrada ZK901, las entidades, zonas y credenciales que ya existen. El objetivo probado es Home Assistant 2026.9.2 con Python 3.14. No instala nada por HACS y no modifica `.storage`.
 
-Esta primera versión verifica carga y renderizado del fork. Todavía no consulta `liectroux_zk901/zone_editor/get` ni guarda zonas. Mantiene los requisitos originales de imagen y calibración. No sustituye todavía al editor que ya usás.
+## 1. Preparar el paquete
 
-## 1. Obtener el archivo compilado
+En el checkout del proyecto:
 
-Durante el desarrollo, ejecutá `npm ci` y `npm run build` en el fork y tomá:
-
-```text
-dist/liectroux-zk901-map-card.js
+```sh
+npm ci
+python3 -m pip install -r requirements-dev.txt
+python3 -m pytest -q
+npm run package
 ```
 
-Cuando haya una release propia, se podrá descargar ese mismo archivo desde los assets de [Releases](https://github.com/estanimw/lovelace-liectroux-zk901-card/releases). El ZIP automático de fuentes no es el archivo instalable. No es necesario instalar Node.js en HA ni clonar el repositorio dentro de su configuración.
+El paquete para instalar es `dist/liectroux-zk901-ha.zip`. También genera el bundle separado, `release-manifest.json` y `SHA256SUMS`. Desde el directorio `dist/`, comprueba los artefactos antes de copiarlos:
 
-## 2. Copiar y registrar
+```sh
+# macOS
+shasum -a 256 -c SHA256SUMS
 
-Copiá el archivo a esta ruta relativa a la configuración de HA:
+# Linux
+sha256sum -c SHA256SUMS
+```
+
+El ZIP contiene estas rutas relativas al directorio de configuración de Home Assistant:
 
 ```text
+custom_components/liectroux_zk901/...
 www/liectroux-zk901/liectroux-zk901-map-card.js
 ```
 
-En HA OS suele corresponder a `/config/www/liectroux-zk901/liectroux-zk901-map-card.js`. Registrá en **Ajustes → Paneles → Recursos**:
+No se ha publicado una release de GitHub desde este cambio. Para obtener un paquete de otra fuente, debe ser una release que incluya conjuntamente el ZIP, su manifest y `SHA256SUMS`.
+
+## 2. Hacer copia de recuperación
+
+Antes de reemplazar archivos, guarda fuera de la carpeta que actualizarás:
+
+- La carpeta actual `custom_components/liectroux_zk901/` completa.
+- El JavaScript de tarjeta/editor actualmente servido desde `www/`.
+- La URL y configuración de la tarjeta/recurso que ya usas.
+
+No borres la integración desde la UI, no elimines sus entidades y no vuelvas a provisionar el robot. El paquete no modifica los datos de conexión guardados por la entrada existente. El editor anterior puede quedarse durante la aceptación.
+
+## 3. Instalar el ZIP
+
+Extrae el contenido de `liectroux-zk901-ha.zip` en la raíz de la configuración de Home Assistant. En HA Container normalmente es el volumen montado como `/config`; en HA OS puede editarse mediante un complemento de archivos. El resultado debe quedar directamente en `custom_components/` y `www/`, no dentro de otra carpeta anidada.
+
+La extracción sobrescribe los archivos de producción con la misma ruta. Conserva archivos existentes que el ZIP no trae, incluido el JS del editor anterior bajo `custom_components/liectroux_zk901/www/`. Reinicia Home Assistant para cargar el código Python actualizado. Después revisa los registros y confirma que la entidad `vacuum.liectroux_zk901` y el dispositivo existentes siguen disponibles.
+
+## 4. Registrar o actualizar el recurso
+
+En **Ajustes → Paneles → Recursos**, añade el recurso si no existe o actualiza la URL del recurso de esta tarjeta:
 
 ```text
-/local/liectroux-zk901/liectroux-zk901-map-card.js?v=0.1.0-dev.0
+/local/liectroux-zk901/liectroux-zk901-map-card.js?v=0.2.0
 ```
 
-Tipo: **JavaScript module**. Recargá el navegador. Si `www` no existía, HA requiere un reinicio para empezar a servirla. La configuración actual ya usa esa carpeta.
+Tipo: **JavaScript module**. Usa como `v` el `card_version` de `release-manifest.json` para evitar caché vieja. Mantén un solo recurso para este archivo. No retires todavía el recurso del editor anterior.
 
-Conservá durante las pruebas el recurso anterior `liectroux-zk901-zone-editor.js` y su tarjeta. Los nombres públicos del fork, elementos auxiliares y eventos están separados del original. No registres dos versiones del nuevo archivo a la vez: actualizá la URL del mismo recurso.
+## 5. Añadir la tarjeta
 
-## 3. Prueba visual sin acciones
+Usa el editor visual para elegir la entidad vacuum de la integración o agrega esta configuración manual:
 
-Agregá una tarjeta manual en una vista de prueba con el contenido de [smoke_config.yaml](smoke_config.yaml). Usa `vacuum.liectroux_zk901`, una imagen SVG incluida en la configuración y listas de controles/modos vacías.
+```yaml
+type: custom:liectroux-zk901-map-card
+entity: vacuum.liectroux_zk901
+```
 
-El resultado esperado es una tarjeta titulada **Prueba de carga Liectroux**, con un fondo geométrico y controles de navegación del mapa. La figura es sintética: no es tu vivienda ni el mapa del robot. La configuración no ofrece acciones de limpieza ni modifica zonas. No agregues el YAML al `configuration.yaml`.
+No se requieren cámara, imagen, calibración ni listas de zonas. Recarga el navegador después de guardar el recurso; para una actualización de JS puede bastar una recarga forzada del navegador.
 
-La configuración reducida a `type` y `entity` **todavía no funciona**: es el objetivo de la siguiente etapa. El editor automático heredado busca cámaras calibradas y puede no ofrecer una configuración inicial para esta instalación; usá la tarjeta manual de prueba.
+## 6. Aceptación funcional
 
-Esta etapa se comprueba localmente con un navegador simulado; su instalación y validación en tu HA siguen pendientes hasta que se realicen explícitamente.
+Primero comprueba la instalación visual y luego las operaciones reales con el robot. Las pruebas automatizadas cubren la API real de Home Assistant 2026.9.2 y una sesión de navegador simulada; no sustituyen esta comprobación del dispositivo.
 
-## 4. Actualizar o volver atrás
+- La tarjeta carga con la configuración mínima, muestra estado, batería, zonas y una pose con su antigüedad cuando existe.
+- Iniciar, pausar, continuar, detener, volver a base, intensidad y limpiar la posición actual invocan la acción esperada y muestran la respuesta/estado.
+- Seleccionar zonas desde el mapa y la lista respeta el orden; una selección de varias zonas inicia una sola operación. Correlaciona el `30000`, las respuestas de `21023` y `21005`, y el modo/submodo observado. Las pruebas de código no demuestran por sí solas la conducta física multizona.
+- En edición, crea una zona, ajusta sus vértices, cambia nombre/tipo, guarda y confirma que reaparece desde el catálogo del robot. Prueba deshacer y descartar.
+- Elimina una zona solo después de confirmar que elegiste la correcta; verifica el catálogo resultante.
+- Si el catálogo cambió externamente, confirma que la tarjeta conserva el borrador y no lo guarda encima sin revisión. Si se pierde la respuesta de un guardado, recarga el catálogo antes de decidir qué hacer.
+- Comprueba la tarjeta en móvil y escritorio y verifica que el editor anterior y otras vistas siguen disponibles durante la transición.
 
-Para actualizar, guardá una copia local del archivo anterior, copiá el nuevo a la misma ruta y cambiá el parámetro `v` del recurso existente. Durante el desarrollo usá un identificador nuevo para cada compilación instalada, aunque la versión npm no haya cambiado. Después recargá el navegador; no es necesario reiniciar HA por cambiar solo este JavaScript.
+Las zonas se escriben en el mapa real del robot. Haz la aceptación en un momento en que puedas observar el equipo y conservar el borrador anterior de las zonas fuera de la tarjeta si necesitas restaurarlas manualmente.
 
-Para volver atrás, restaurá el archivo anterior y cambiá nuevamente `v`, o retirá la tarjeta de prueba y seguí usando el editor previo. No hace falta eliminar la integración, el dispositivo, sus credenciales ni sus entidades.
+## 7. Actualizar
 
-Cuando el fork implemente y valide todo el editor, se podrá reemplazar la tarjeta anterior en el dashboard. Solo después de comprobar que ninguna vista la usa se retirarán su recurso y archivo JS. Esa migración no forma parte de esta entrega.
+Genera y verifica el nuevo ZIP; conserva la versión instalada y repite los pasos 2–4. Extrae en la misma raíz de configuración, reinicia Home Assistant si cambió integración Python y actualiza `v` al frontend nuevo. No borres la entrada de configuración, el dispositivo ni las entidades. Una pareja frontend/backend debe proceder del mismo ZIP y compatibilidad manifest.
 
-Los archivos de `www` son públicos para quien pueda acceder a HA. Guardá allí solo el bundle, sin credenciales ni capturas del robot. La API autenticada seguirá siendo responsable de entregar los datos reales.
+## 8. Volver atrás
 
-## Paquete conjunto desde este repositorio
+Restaura la carpeta de integración y el JavaScript guardados en el paso 2. Restaura la URL anterior del recurso o su versión de caché y reinicia Home Assistant para volver a cargar Python. Si añadiste una tarjeta nueva a prueba, quítala de esa vista; puedes seguir usando la tarjeta/editor anterior. No elimines la integración ni sus credenciales.
 
-La integración Python ya vive en `custom_components/liectroux_zk901/` de este mismo checkout. `npm run package` genera también `dist/liectroux-zk901-ha.zip`, `release-manifest.json` y `SHA256SUMS`. El ZIP usa rutas relativas al directorio de configuración de HA: `custom_components/liectroux_zk901/` y `www/liectroux-zk901/`. No se extrae en el sistema raíz ni dentro de otra carpeta `custom_components`.
+## Límites de distribución
 
-Para una instalación conjunta, conservar una copia de los archivos desplegados de esta integración/tarjeta, comprobar los hashes, instalar ambas carpetas y reiniciar HA para cargar Python. La entrada de configuración y sus entidades se conservan. El recurso module todavía debe registrarse una vez por la UI y el navegador debe recargarse. No borrar ni sustituir toda la configuración de HA.
-
-El controlador se trasladó sin cambios de comportamiento: este paquete inicial no habilita aún la nueva UI de zonas. El editor anterior desplegado sigue disponible. Consultá las [opciones más cómodas de instalación](INSTALLATION_OPTIONS.md) antes de elegir cómo desplegar la futura versión completa.
+El empaquetado genera archivos locales y los workflows guardan artefactos de build o los adjuntan a una release creada por el propietario. Ejecutar build/package no publica una release, no hace push y no instala cambios en HA.

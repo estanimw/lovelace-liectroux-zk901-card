@@ -16,3 +16,15 @@ clean_area:
       example: Cocina
       selector:
         text:
+clean_areas:
+  target:
+    entity:
+      integration: liectroux_zk901
+      domain: vacuum
+  fields:
+    area_ids:
+      required: true
+      example: [1, 2]
+      description: IDs de zonas persistidas, en el orden solicitado. La selección completa se valida antes de enviar un solo comando.
+      selector:
+        object: {}

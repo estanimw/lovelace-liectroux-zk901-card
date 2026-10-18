@@ -3,7 +3,12 @@
         "target": "es2017",
         "module": "esnext",
         "moduleResolution": "node",
-        "lib": ["es2017", "dom", "dom.iterable", "esnext"],
+        "lib": [
+            "es2017",
+            "dom",
+            "dom.iterable",
+            "esnext"
+        ],
         "noEmit": true,
         "noUnusedParameters": true,
         "noImplicitReturns": true,
@@ -13,5 +18,13 @@
         "skipLibCheck": true,
         "resolveJsonModule": true,
         "experimentalDecorators": true
-    }
+    },
+    "include": [
+        "src/zk901-card.ts",
+        "src/editor.ts",
+        "src/data/zk901.ts",
+        "src/model/zone-draft.ts",
+        "src/model/zone-geometry.ts",
+        "src/types/fixes.ts"
+    ]
 }
