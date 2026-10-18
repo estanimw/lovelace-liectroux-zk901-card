@@ -52,15 +52,11 @@ La instalación se hace copiando el JavaScript compilado a `www/liectroux-zk901/
 
 Cuando se publique una release del fork, su asset `liectroux-zk901-map-card.js` será el archivo instalable. El workflow está preparado para generarlo; todavía no se publicó una release propia. Descargar el ZIP del código fuente o crear el fork no instala la tarjeta. Las actualizaciones son explícitas y el funcionamiento diario usa el archivo servido por HA, sin depender de GitHub.
 
-## Próximas etapas
+## Próxima iteración
 
-1. Leer catálogo de zonas y posición desde la API WebSocket de nuestra integración.
-2. Dibujar zonas/pose en una capa vectorial y simplificar la configuración a la entidad de la aspiradora.
-3. Integrar controles y ejecución de una zona persistida mediante servicios existentes.
-4. Incorporar creación, edición y eliminación de zonas con borrador local y guardado verificado por el backend.
-5. Validar en HA y reemplazar el editor anterior.
+El [plan de implementación completo](docs/IMPLEMENTATION_PLAN.md) fija una entrega instalable de tarjeta e integración compatible: zonas y posición en vivo, controles diarios, limpieza de una o varias zonas y CRUD completo. Incluye criterios de aceptación, pruebas, empaquetado y migración conservando la instalación actual.
 
-El acceso autónomo a un raster LiDAR y las operaciones espaciales sin protocolo confirmado no forman parte de esta entrega.
+El plan describe trabajo por realizar; las capacidades disponibles hoy siguen siendo las indicadas arriba. La siguiente iteración no incluye recorrido ni adquisición LiDAR/cloud.
 
 ## Licencia y autoría
 
