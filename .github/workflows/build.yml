@@ -4,22 +4,20 @@ on:
   push:
     branches:
       - master
-      - dev
   pull_request:
     branches:
       - master
-      - dev
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version-file: .nvmrc
 
       - name: Build
         run: |
@@ -29,5 +27,6 @@ jobs:
       - name: Archive built file
         uses: actions/upload-artifact@v4
         with:
-          name: xiaomi-vacuum-map-card
-          path: dist/xiaomi-vacuum-map-card.js
+          name: liectroux-zk901-map-card
+          path: dist/liectroux-zk901-map-card.js
+          if-no-files-found: error

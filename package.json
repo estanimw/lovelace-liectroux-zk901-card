@@ -1,7 +1,7 @@
 {
-    "name": "xiaomi-vacuum-map-card",
-    "version": "v0.0.0-dev",
-    "description": "Xiaomi Vacuum Map Card",
+    "name": "liectroux-zk901-map-card",
+    "version": "0.1.0-dev.0",
+    "description": "Liectroux ZK901 map card for Home Assistant (adaptation in progress)",
     "keywords": [
         "home-assistant",
         "homeassistant",
@@ -10,17 +10,17 @@
         "lovelace",
         "custom-cards"
     ],
-    "module": "xiaomi-vacuum-map-card.js",
-    "repository": "git@github.com:PiotrMachowski/lovelace-xiaomi-vacuum-map-card.git",
+    "module": "dist/liectroux-zk901-map-card.js",
+    "repository": "https://github.com/estanimw/lovelace-liectroux-zk901-card.git",
     "author": "Piotr Machowski <piotr.machowski.dev@gmail.com>",
     "license": "MIT",
     "dependencies": {
+        "change-perspective": "^1.0.1",
         "custom-card-helpers": "^1.9.0",
         "home-assistant-js-websocket": "^8.0.1",
         "lit": "^2.0.0",
         "pointer-tracker": "^2.4.0",
-        "transformation-matrix": "^2.8.0",
-        "change-perspective": "^1.0.1"
+        "transformation-matrix": "^2.8.0"
     },
     "devDependencies": {
         "@babel/core": "^7.15.0",
@@ -29,28 +29,29 @@
         "@rollup/plugin-json": "^4.1.0",
         "@typescript-eslint/eslint-plugin": "^4.33.0",
         "@typescript-eslint/parser": "^4.33.0",
-        "cross-var": "^1.1.0",
         "eslint": "^7.32.0",
         "eslint-config-airbnb-base": "^14.2.1",
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-import": "^2.24.0",
         "eslint-plugin-prettier": "^4.0.0",
         "prettier": "^2.4.1",
-        "replace-in-file": "^6.3.5",
         "rollup": "^2.58.0",
         "rollup-plugin-babel": "^4.4.0",
         "rollup-plugin-commonjs": "^10.1.0",
         "rollup-plugin-node-resolve": "^5.2.0",
         "rollup-plugin-serve": "^1.1.0",
         "rollup-plugin-terser": "^7.0.2",
-        "rollup-plugin-typescript2": "^0.30.0",
+        "rollup-plugin-typescript2": "0.35.0",
         "typescript": "^4.4.3"
     },
     "scripts": {
         "start": "rollup -c rollup.config.dev.js --watch",
         "build": "npm run lint && npm run rollup && npm run add-version",
-        "add-version": "cross-var replace-in-file \"@VACUUM_MAP_CARD_VERSION_PLACEHOLDER@\" \"$npm_package_version\" \"dist/xiaomi-vacuum-map-card.js\"",
+        "add-version": "node scripts/add-version.cjs",
         "lint": "eslint src/*.ts",
         "rollup": "rollup -c"
+    },
+    "engines": {
+        "node": "22.x"
     }
 }

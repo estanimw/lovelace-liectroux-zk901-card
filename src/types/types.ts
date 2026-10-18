@@ -16,7 +16,7 @@ declare global {
         [EDITOR_CUSTOM_ELEMENT_NAME]: LovelaceCardEditor;
         [ACTION_HANDLER_CUSTOM_ELEMENT_NAME]: XiaomiVacuumMapCardActionHandler;
         "hui-error-card": LovelaceCard;
-        "xvmc-tile": Tile;
+        "lzmc-tile": Tile;
     }
 }
 

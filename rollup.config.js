@@ -20,7 +20,7 @@ export default [
     {
         input: "src/xiaomi-vacuum-map-card.ts",
         output: {
-            dir: "dist",
+            file: "dist/liectroux-zk901-map-card.js",
             format: "es",
         },
         plugins,

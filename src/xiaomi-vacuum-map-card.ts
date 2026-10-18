@@ -86,7 +86,7 @@ import { TilesWrapper } from "./components/tiles-wrapper";
 import { IconsWrapper } from "./components/icons-wrapper";
 import { PresetSelector } from "./components/preset-selector";
 
-const line1 = "   XIAOMI-VACUUM-MAP-CARD";
+const line1 = "   LIECTROUX-ZK901-MAP-CARD";
 const line2 = `   ${localize("common.version")} ${CARD_VERSION}`;
 const length = Math.max(line1.length, line2.length) + 3;
 const pad = (text: string, length: number) => text + " ".repeat(length - text.length);
@@ -101,7 +101,7 @@ const windowWithCards = window as unknown as Window & { customCards: unknown[] }
 windowWithCards.customCards = windowWithCards.customCards || [];
 windowWithCards.customCards.push({
     type: CARD_CUSTOM_ELEMENT_NAME,
-    name: "Vacuum Map Card",
+    name: "Liectroux ZK901 Map Card",
     description: localize("common.description"),
     getEntitySuggestion: (hass, entityId) => {
         if (entityId.split(".")[0] !== "vacuum") {
@@ -203,7 +203,7 @@ export class XiaomiVacuumMapCard extends LitElement {
                 camera: true,
             },
             entity: vacuum_entity,
-            vacuum_platform: PlatformGenerator.XIAOMI_MIIO_PLATFORM,
+            vacuum_platform: PlatformGenerator.DEFAULT_PLATFORM,
         };
     }
 
@@ -328,7 +328,7 @@ export class XiaomiVacuumMapCard extends LitElement {
                     (this.config.title ?? "").length > 0,
                     () => html`<h1 class="card-header">${this.config.title}</h1>`,
                 )}
-                <xvmc-preset-selector
+                <lzmc-preset-selector
                     .availablePresets=${availablePresets}
                     .availablePresetIndex=${availablePresetIndex}
                     .openPreviousPreset=${(): void => this._openPreviousPreset()}
@@ -338,9 +338,9 @@ export class XiaomiVacuumMapCard extends LitElement {
                     .executePresetsActivation=${(): void => this._executePresetsActivation()}
                     .openNextPreset=${(): void => this._openNextPreset()}
                     .nextPresetIndex=${this._getNextPresetIndex()}>
-                </xvmc-preset-selector>
+                </lzmc-preset-selector>
                 <div class="map-wrapper">
-                    <pinch-zoom
+                    <lzmc-pinch-zoom
                         min-scale="0.5"
                         id="map-zoomer"
                         @change="${this._calculateScale}"
@@ -349,7 +349,7 @@ export class XiaomiVacuumMapCard extends LitElement {
                         no-default-pan="${this.mapLocked || preset.two_finger_pan}"
                         style="touch-action: none;">
                         ${mapZoomerContent}
-                    </pinch-zoom>
+                    </lzmc-pinch-zoom>
                     <div id="map-zoomer-overlay">
                         <div style="right: 0; top: 0; position: absolute;">
                             <ha-icon
@@ -386,12 +386,12 @@ export class XiaomiVacuumMapCard extends LitElement {
                                 <div class="map-controls-wrapper">
                                     <div class="map-controls">
                                         ${conditional(modes.length > 1, () => html`
-                                            <xvmc-dropdown-menu
+                                            <lzmc-dropdown-menu
                                                 .values=${modes}
                                                 .currentIndex=${this.selectedMode}
                                                 .setValue=${selected => this._setCurrentMode(selected)}
                                                 .renderNameCollapsed=${true}>
-                                            </xvmc-dropdown-menu>
+                                            </lzmc-dropdown-menu>
                                             `,
                                         )}
                                         ${conditional(
@@ -402,18 +402,18 @@ export class XiaomiVacuumMapCard extends LitElement {
                                 </div>
                             `,
                         )}
-                        <xvmc-icons-wrapper
+                        <lzmc-icons-wrapper
                             .icons=${icons}
                             .isInEditor=${this.isInEditor}
                             .onAction=${(c: ActionableObjectConfig, action?: string) => createActionWithConfigHandler(this, c, action)}>
-                        </xvmc-icons-wrapper>
-                        <xvmc-tiles-wrapper
+                        </lzmc-icons-wrapper>
+                        <lzmc-tiles-wrapper
                             .hass=${this.hass}
                             .tiles=${tiles}
                             .isInEditor=${this.isInEditor}
                             .onAction=${(c: ActionableObjectConfig, action?: string) => createActionWithConfigHandler(this, c, action)}
                             .internalVariables=${this.internalVariables}>
-                        </xvmc-tiles-wrapper>
+                        </lzmc-tiles-wrapper>
                     </div>`
                 )}
                 ${ToastRenderer.render("map-card")}
@@ -583,7 +583,7 @@ export class XiaomiVacuumMapCard extends LitElement {
     private _getModes(config: CardPresetConfig) {
         const vacuumPlatform = PlatformGenerator.getPlatformName(config.vacuum_platform);
         return (
-            (config.map_modes?.length ?? -1) === -1 || vacuumPlatform.startsWith("Setup")
+            (config.map_modes?.length ?? -1) === -1
                 ? PlatformGenerator.generateDefaultModes(vacuumPlatform)
                 : config.map_modes ?? [EMPTY_MAP_MODE]
         ).map(m => new MapMode(vacuumPlatform, m, this.config.language));
@@ -1322,7 +1322,7 @@ export class XiaomiVacuumMapCard extends LitElement {
     private _showOldConfig(): TemplateResult {
         return html`
             <hui-warning>
-                <h1>Xiaomi Vacuum Map Card ${CARD_VERSION}</h1>
+                <h1>Liectroux ZK901 Map Card ${CARD_VERSION}</h1>
                 <p>${this._localize("common.old_configuration")}</p>
                 <p>
                     <a

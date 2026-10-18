@@ -382,7 +382,7 @@ export default class PinchZoom extends HTMLElement {
     /**
      * Called when the direct children of this element change.
      * Until we have have shadow dom support across the board, we
-     * require a single element to be the child of <pinch-zoom>, and
+     * require a single element to be the child of <lzmc-pinch-zoom>, and
      * that's the element we pan/scale.
      */
     private _stageElChange() {
@@ -393,7 +393,7 @@ export default class PinchZoom extends HTMLElement {
         this._positioningEl = this.children[0];
 
         if (this.children.length > 1) {
-            console.warn("<pinch-zoom> must not have more than one child.");
+            console.warn("<lzmc-pinch-zoom> must not have more than one child.");
         }
 
         // Do a bounds check

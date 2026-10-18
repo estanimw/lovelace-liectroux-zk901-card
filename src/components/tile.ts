@@ -20,7 +20,7 @@ import { blankBeforePercent } from "../localize/hass/blank_before_percent";
 import { RootlessLitElement } from "./rootless-lit-element";
 
 
-@customElement("xvmc-tile")
+@customElement("lzmc-tile")
 export class Tile extends RootlessLitElement {
 
     @property({attribute: false})

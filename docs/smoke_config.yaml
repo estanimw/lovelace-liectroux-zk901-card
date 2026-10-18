@@ -1,0 +1,11 @@
+# Prueba de carga: fondo sintético, sin acciones ni datos de zonas.
+type: custom:liectroux-zk901-map-card
+entity: vacuum.liectroux_zk901
+title: Prueba de carga Liectroux
+map_source:
+  image: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2U4ZWVmNCIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyMjAiIHJ4PSIxMiIgZmlsbD0iI2JlZDNlNSIgc3Ryb2tlPSIjNDI2NzgxIiBzdHJva2Utd2lkdGg9IjQiLz48L3N2Zz4="
+calibration_source:
+  identity: true
+icons: []
+tiles: []
+map_modes: []

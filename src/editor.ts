@@ -160,7 +160,7 @@ export class XiaomiVacuumMapCardEditor extends LitElement implements Omit<Lovela
                             ${this._localize([
                                 "editor.label.platforms_documentation",
                                 "{0}",
-                                this._config?.vacuum_platform ?? PlatformGenerator.XIAOMI_MIIO_PLATFORM,
+                                this._config?.vacuum_platform ?? PlatformGenerator.DEFAULT_PLATFORM,
                             ])}
                         </a>
                     </p>
