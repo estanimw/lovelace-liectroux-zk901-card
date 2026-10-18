@@ -54,7 +54,7 @@ Estas comprobaciones no equivalen a una validación en HA ni a una prueba físic
 
 `origin` apunta al fork de estanimw y `upstream` al proyecto original. Los cambios futuros de upstream se revisan antes de integrarlos. No se conserva el workflow que fusionaba automáticamente `master` a `dev` bajo la identidad del autor original.
 
-El workflow de build compila con Node 22 y conserva el bundle como artifact. Al publicar una release con un tag semver, el workflow de release ajusta la versión, compila y adjunta el JS con el nombre propio. Se eliminaron los metadatos y el workflow de HACS. No se publica ninguna release ni se hace push al ejecutar una compilación local.
+Los workflows de build y release usan Node 22 y Python 3.14. Ejecutan las pruebas Python y `npm run package`; guardan o adjuntan el JS, el ZIP conjunto, el manifest y `SHA256SUMS`. En una release se ajusta la versión frontend al tag antes de compilar. Se eliminaron los metadatos y el workflow de HACS. No se publica ninguna release ni se hace push al ejecutar una compilación local.
 
 ## Resultado de esta etapa — 2026-10-18
 
@@ -67,3 +67,13 @@ El workflow de build compila con Node 22 y conserva el bundle como artifact. Al 
 - YAML de workflows, coherencia de versión del lockfile y `git diff --check` verificados. Los workflows de GitHub se prepararon localmente; no se ejecutaron ni publicaron en GitHub.
 
 La limpieza previa al primer commit retiró el soporte específico de otras marcas. Se volvió a comprobar la compilación y la prueba de navegador con la base genérica antes de cerrar ese commit.
+
+## Migración a repositorio único — 2026-10-18
+
+`custom_components/liectroux_zk901/` y `tests/test_zk901_client.py` se trasladaron desde el workspace padre sin modificar sus bytes. Se verificaron por SHA-256 los 16 archivos fuente de la integración y el test. Se excluyeron cachés Python y metadatos Finder. No hay una segunda copia editable de esa integración en el workspace padre.
+
+La integración no importa código del workspace de investigación ni usa `.env`; las credenciales siguen entrando por la configuración de HA. Se conserva el JS del editor anterior en las fuentes durante la transición, pero no se incluye en el paquete nuevo ni se modifica su copia desplegada en HA.
+
+Para probar el cliente y el empaquetado: `python3 -m pip install -r requirements-dev.txt` y `python3 -m pytest -q`. La configuración pytest solo descubre `tests/` de este checkout; no ejecuta experimentos físicos del workspace padre. Estas pruebas no sustituyen las futuras pruebas de la API en HA real.
+
+`npm run package` no instala nada ni habla con HA: genera artefactos en `dist/`. El ZIP contiene los módulos Python, manifest, servicios y traducciones permitidos, y el bundle recién compilado en `www/liectroux-zk901/`. No se incluye el resto del repositorio. El script de empaquetado usa solo la biblioteca estándar de Python y puede ejecutarse sobre una compilación fresca mediante `python3 scripts/package-release.py`.

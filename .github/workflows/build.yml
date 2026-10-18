@@ -19,14 +19,23 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Test Python client and packaging
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pytest -q
+
       - name: Build
         run: |
           npm ci
-          npm run build
+          npm run package
 
       - name: Archive built file
         uses: actions/upload-artifact@v4
         with:
           name: liectroux-zk901-map-card
-          path: dist/liectroux-zk901-map-card.js
+          path: dist/*
           if-no-files-found: error

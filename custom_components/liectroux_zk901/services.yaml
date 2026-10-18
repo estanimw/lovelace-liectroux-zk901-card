@@ -1,0 +1,18 @@
+clean_area:
+  target:
+    entity:
+      integration: liectroux_zk901
+      domain: vacuum
+  fields:
+    area_id:
+      required: false
+      example: 1
+      selector:
+        number:
+          min: 1
+          mode: box
+    tag:
+      required: false
+      example: Cocina
+      selector:
+        text:

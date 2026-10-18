@@ -1,0 +1,80 @@
+{
+  "title": "Liectroux ZK901",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect the vacuum",
+        "description": "Enter the robot's reserved IP address and current provisioning details. Home Assistant must be able to reach the robot on the local network.",
+        "data": {
+          "host": "IP address",
+          "device_id": "Device ID",
+          "local_key": "Local key",
+          "uid": "UID",
+          "sn": "Serial number"
+        }
+      },
+      "reconfigure": {
+        "title": "Update the connection",
+        "description": "After pairing again, update the IP address and current identifiers. The same vacuum remains in Home Assistant.",
+        "data": {
+          "host": "IP address",
+          "device_id": "Device ID",
+          "local_key": "Local key",
+          "uid": "UID",
+          "sn": "Serial number"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "The vacuum cannot be reached on the local network. Check its IP address and Home Assistant's connectivity.",
+      "invalid_auth": "The local key was rejected. Copy the current provisioning details again.",
+      "timeout": "The vacuum did not respond in time.",
+      "invalid_response": "The vacuum responded, but its status is invalid.",
+      "unknown": "Could not communicate with the vacuum."
+    },
+    "abort": {
+      "already_configured": "This vacuum is already configured.",
+      "reconfigure_successful": "The connection was updated successfully."
+    }
+  },
+  "entity": {
+    "vacuum": {
+      "zk901": {
+        "state_attributes": {
+          "fan_speed": {
+            "state": {
+              "quiet": "Quiet",
+              "auto": "Auto",
+              "strong": "Strong"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "battery": {"name": "Battery"}
+    },
+    "select": {
+      "zone": {"name": "Zone"}
+    },
+    "button": {
+      "clean_zone": {"name": "Clean zone"}
+    }
+  },
+  "services": {
+    "clean_area": {
+      "name": "Clean zone",
+      "description": "Clean one saved zone. Provide its ID or name, not both. A forbidden zone cannot be cleaned.",
+      "fields": {
+        "area_id": {
+          "name": "Zone ID",
+          "description": "Numeric zone ID in the catalog."
+        },
+        "tag": {
+          "name": "Zone name",
+          "description": "The zone's tag field. It must identify exactly one zone."
+        }
+      }
+    }
+  }
+}

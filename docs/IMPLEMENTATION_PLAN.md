@@ -34,13 +34,13 @@ Antes de implementar se contrastarán la versión instalada y la API disponible 
 
 ### Código reutilizable
 
-El backend vive fuera de este fork, en `../custom_components/liectroux_zk901/`:
+El backend vive en este mismo repositorio, en `custom_components/liectroux_zk901/`, tras la migración acordada el 2026-10-18:
 
 - `client.py`: conexión única, cola, codificación LAN, comandos y CRUD con revisión/verificación.
 - `coordinator.py`: estado recibido, catálogo y disponibilidad compartidos.
 - `vacuum.py`: servicios nativos y limpieza individual persistida.
 - `zone_editor.py`: WebSocket `zone_editor/get` y `zone_editor/apply`, actualmente de administrador.
-- `../tests/test_zk901_client.py`: dispositivo simulado y pruebas sin hardware.
+- `tests/test_zk901_client.py`: dispositivo simulado y pruebas sin hardware.
 
 El fork aporta Lit, elementos con identidad propia, navegación del mapa y proceso de compilación. El editor vectorial existente aporta lógica y comportamiento de borrador/transformación a comparar y adaptar, sin copiar una segunda implementación de protocolo al navegador.
 
@@ -212,14 +212,16 @@ Si aparece una limitación real de firmware o un bloqueo que cambia el alcance, 
 ### Artefactos de una misma entrega
 
 - `liectroux-zk901-map-card.js` autocontenido, con versión visible.
-- ZIP de la integración actualizada con estructura `custom_components/liectroux_zk901/`, sin `.env`, identificadores ni credenciales.
+- ZIP conjunto `liectroux-zk901-ha.zip`, con estructura `custom_components/liectroux_zk901/` y `www/liectroux-zk901/`, sin `.env`, identificadores ni credenciales.
 - `SHA256SUMS` y manifest de compatibilidad con versiones de frontend, backend, API y HA verificado, más commits/huellas de las fuentes.
 - Instrucciones de instalación, actualización, reversión y comprobación funcional completas; README final sin avisos de funciones incluidas todavía pendientes.
 - Actualizar `INSTALLATION.md` y sustituir el ejemplo sintético `smoke_config.yaml` por la configuración real mínima; los datos simulados que sigan siendo útiles quedan en fixtures de pruebas, no en los pasos de instalación.
 
-La fuente Python continúa en el workspace de la integración, no se mantiene duplicada dentro del frontend. Preparar un comando de empaquetado que reciba explícitamente la ruta de la integración y genere ambos artefactos, con whitelist de archivos. El workspace padre no es actualmente un repositorio Git: conservar una referencia/patch verificable de los cambios Python junto a los artefactos y sus hashes. No depender de un commit inexistente ni de un checkout hermano oculto para instalar el resultado.
+La integración Python y la tarjeta tienen ahora una sola fuente canónica en este repositorio. `npm run package` compila el frontend y `scripts/package-release.py` genera el ZIP conjunto, manifest y hashes usando únicamente archivos del checkout; no depende de una carpeta hermana. La misma revisión Git identifica ambos componentes.
 
-El paquete local basta para instalar y probar. Publicar en GitHub o hacer push es una acción separada; una release remota no es un requisito para que la entrega sea instalable. Si se publica, sus assets serán exactamente los artefactos verificados. El workflow actual solo adjunta el JS: no afirmar que distribuye el backend hasta preparar explícitamente ese mecanismo.
+Los workflows de build y release ya ejecutan las pruebas Python y generan/publican los cuatro artefactos. Publicar en GitHub o hacer push sigue siendo una acción separada. El paquete local basta para instalar y probar; el empaquetado actual es infraestructura de distribución y no significa que se haya implementado el alcance funcional de esta iteración.
+
+Las [alternativas de instalación](INSTALLATION_OPTIONS.md) describen un futuro instalador desde releases y un posible actualizador propio. Ninguno se implementa implícitamente al reorganizar el repositorio ni reemplaza la comprobación de compatibilidad del producto.
 
 ### Secuencia de instalación en HA Container
 

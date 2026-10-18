@@ -1,0 +1,80 @@
+{
+  "title": "Liectroux ZK901",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar la aspiradora",
+        "description": "Introduce la IP reservada en el router y los datos vigentes del provisioner. Home Assistant debe alcanzar el robot por la red local.",
+        "data": {
+          "host": "Dirección IP",
+          "device_id": "ID del dispositivo",
+          "local_key": "Clave local",
+          "uid": "UID",
+          "sn": "Número de serie"
+        }
+      },
+      "reconfigure": {
+        "title": "Actualizar la conexión",
+        "description": "Después de un nuevo emparejamiento, actualiza la IP y los identificadores vigentes. Se conserva esta aspiradora en Home Assistant.",
+        "data": {
+          "host": "Dirección IP",
+          "device_id": "ID del dispositivo",
+          "local_key": "Clave local",
+          "uid": "UID",
+          "sn": "Número de serie"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se alcanza la aspiradora en la red local. Revisa la IP y la conectividad de Home Assistant.",
+      "invalid_auth": "La clave local fue rechazada. Vuelve a copiar los datos vigentes del provisioner.",
+      "timeout": "La aspiradora no respondió a tiempo.",
+      "invalid_response": "La aspiradora respondió, pero el estado no es válido.",
+      "unknown": "No se pudo comunicar con la aspiradora."
+    },
+    "abort": {
+      "already_configured": "Esta aspiradora ya está configurada.",
+      "reconfigure_successful": "La conexión se actualizó correctamente."
+    }
+  },
+  "entity": {
+    "vacuum": {
+      "zk901": {
+        "state_attributes": {
+          "fan_speed": {
+            "state": {
+              "quiet": "Silencioso",
+              "auto": "Automático",
+              "strong": "Fuerte"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "battery": {"name": "Batería"}
+    },
+    "select": {
+      "zone": {"name": "Zona"}
+    },
+    "button": {
+      "clean_zone": {"name": "Limpiar zona"}
+    }
+  },
+  "services": {
+    "clean_area": {
+      "name": "Limpiar zona",
+      "description": "Limpia una zona persistida del catálogo. Indica su ID o su nombre, no ambos. Una zona prohibida no se limpia.",
+      "fields": {
+        "area_id": {
+          "name": "ID de zona",
+          "description": "Identificador numérico de la zona en el catálogo."
+        },
+        "tag": {
+          "name": "Nombre de zona",
+          "description": "Campo tag de la zona. Debe identificar una sola zona."
+        }
+      }
+    }
+  }
+}

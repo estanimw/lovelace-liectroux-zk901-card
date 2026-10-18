@@ -51,3 +51,11 @@ Para volver atrás, restaurá el archivo anterior y cambiá nuevamente `v`, o re
 Cuando el fork implemente y valide todo el editor, se podrá reemplazar la tarjeta anterior en el dashboard. Solo después de comprobar que ninguna vista la usa se retirarán su recurso y archivo JS. Esa migración no forma parte de esta entrega.
 
 Los archivos de `www` son públicos para quien pueda acceder a HA. Guardá allí solo el bundle, sin credenciales ni capturas del robot. La API autenticada seguirá siendo responsable de entregar los datos reales.
+
+## Paquete conjunto desde este repositorio
+
+La integración Python ya vive en `custom_components/liectroux_zk901/` de este mismo checkout. `npm run package` genera también `dist/liectroux-zk901-ha.zip`, `release-manifest.json` y `SHA256SUMS`. El ZIP usa rutas relativas al directorio de configuración de HA: `custom_components/liectroux_zk901/` y `www/liectroux-zk901/`. No se extrae en el sistema raíz ni dentro de otra carpeta `custom_components`.
+
+Para una instalación conjunta, conservar una copia de los archivos desplegados de esta integración/tarjeta, comprobar los hashes, instalar ambas carpetas y reiniciar HA para cargar Python. La entrada de configuración y sus entidades se conservan. El recurso module todavía debe registrarse una vez por la UI y el navegador debe recargarse. No borrar ni sustituir toda la configuración de HA.
+
+El controlador se trasladó sin cambios de comportamiento: este paquete inicial no habilita aún la nueva UI de zonas. El editor anterior desplegado sigue disponible. Consultá las [opciones más cómodas de instalación](INSTALLATION_OPTIONS.md) antes de elegir cómo desplegar la futura versión completa.

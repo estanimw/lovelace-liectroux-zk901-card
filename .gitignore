@@ -2,3 +2,12 @@
 /.rpt2_cache/
 /dist
 .idea
+
+# Python / local configuration
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+.DS_Store
