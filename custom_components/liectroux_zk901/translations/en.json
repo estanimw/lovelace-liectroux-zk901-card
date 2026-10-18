@@ -59,6 +59,9 @@
     },
     "button": {
       "clean_zone": {"name": "Clean zone"}
+    },
+    "update": {
+      "software": {"name": "Software update"}
     }
   },
   "services": {
@@ -85,6 +88,10 @@
           "description": "Ordered list of positive zone IDs from the current catalog."
         }
       }
+    },
+    "restore_previous_version": {
+      "name": "Restore previous Liectroux ZK901 software",
+      "description": "Restore the previous integration and card files from the last updater backup. Home Assistant must be restarted manually."
     }
   }
 }

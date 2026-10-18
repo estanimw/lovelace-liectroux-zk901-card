@@ -1,6 +1,6 @@
 # Instalar en Home Assistant Container
 
-Esta guía instala en pareja la custom integration y la tarjeta, conservando la entrada ZK901, las entidades, zonas y credenciales que ya existen. El objetivo probado es Home Assistant 2026.9.2 con Python 3.14. No instala nada por HACS y no modifica `.storage`.
+Esta guía instala en pareja la custom integration y la tarjeta, conservando la entrada ZK901, las entidades, zonas y credenciales que ya existen. El objetivo probado es Home Assistant 2026.9.2 con Python 3.14. No instala nada por HACS. El actualizador cambia recursos storage mediante la colección de Home Assistant; no edita directamente archivos internos de `.storage`.
 
 ## 1. Preparar el paquete
 
@@ -30,7 +30,7 @@ custom_components/liectroux_zk901/...
 www/liectroux-zk901/liectroux-zk901-map-card.js
 ```
 
-No se ha publicado una release de GitHub desde este cambio. Para obtener un paquete de otra fuente, debe ser una release que incluya conjuntamente el ZIP, su manifest y `SHA256SUMS`.
+La primera instalación del actualizador requiere instalar manualmente la pareja 0.3.0. En las siguientes instalaciones, usa la entidad de actualización y las releases completas de este mismo repositorio.
 
 ## 2. Hacer copia de recuperación
 
@@ -53,10 +53,10 @@ La extracción sobrescribe los archivos de producción con la misma ruta. Conser
 En **Ajustes → Paneles → Recursos**, añade el recurso si no existe o actualiza la URL del recurso de esta tarjeta:
 
 ```text
-/local/liectroux-zk901/liectroux-zk901-map-card.js?v=0.2.0
+/local/liectroux-zk901/liectroux-zk901-map-card.js?v=0.3.0
 ```
 
-Tipo: **JavaScript module**. Usa como `v` el `card_version` de `release-manifest.json` para evitar caché vieja. Mantén un solo recurso para este archivo. No retires todavía el recurso del editor anterior.
+Tipo: **JavaScript module**. Usa como `v` el `card_version` de `release-manifest.json` para evitar caché vieja. Mantén un solo recurso para este archivo. No retires todavía el recurso del editor anterior. En el primer arranque con 0.3.0, si Lovelace está en modo storage y ya existe este recurso, la integración lo cambia automáticamente a una URL versionada.
 
 ## 5. Añadir la tarjeta
 
@@ -83,14 +83,24 @@ Primero comprueba la instalación visual y luego las operaciones reales con el r
 
 Las zonas se escriben en el mapa real del robot. Haz la aceptación en un momento en que puedas observar el equipo y conservar el borrador anterior de las zonas fuera de la tarjeta si necesitas restaurarlas manualmente.
 
-## 7. Actualizar
+## 7. Actualizar desde Home Assistant
 
-Genera y verifica el nuevo ZIP; conserva la versión instalada y repite los pasos 2–4. Extrae en la misma raíz de configuración, reinicia Home Assistant si cambió integración Python y actualiza `v` al frontend nuevo. No borres la entrada de configuración, el dispositivo ni las entidades. Una pareja frontend/backend debe proceder del mismo ZIP y compatibilidad manifest.
+Instala manualmente una vez el paquete 0.3.0 para añadir el actualizador. Después, `update` muestra la versión estable más reciente completa, las notas y la acción **Instalar**. La consulta de GitHub es opcional y no participa en el control LAN del robot.
+
+Al elegir **Instalar**, Home Assistant descarga únicamente los artefactos esperados de este repositorio, comprueba sus límites, versiones, rutas y hashes, prepara la pareja en disco y conserva una copia anterior. El recurso Lovelace existente no cambia todavía, así que una recarga anticipada del navegador sigue usando el JavaScript que corresponde al backend cargado.
+
+Cuando aparezca el aviso de reinicio pendiente, reinicia Home Assistant. Al cargar correctamente la nueva integración, en modo storage se actualiza la URL del recurso existente sin duplicarlo ni editar directamente `.storage`; después recarga el navegador. La integración no reinicia Home Assistant automáticamente.
+
+Si los recursos Lovelace están en YAML, el actualizador instala el backend y prepara el JavaScript versionado, pero no modifica YAML. Después del reinicio, cambia manualmente la URL del único recurso a la URL versionada indicada en la notificación y recarga el navegador.
+
+Las releases borrador, preliminares o sin ZIP, manifest, bundle y `SHA256SUMS` completos se ignoran. Los hashes detectan errores o cambios entre artefactos, pero no autentican por sí solos la cuenta que publica el repositorio.
 
 ## 8. Volver atrás
 
-Restaura la carpeta de integración y el JavaScript guardados en el paso 2. Restaura la URL anterior del recurso o su versión de caché y reinicia Home Assistant para volver a cargar Python. Si añadiste una tarjeta nueva a prueba, quítala de esa vista; puedes seguir usando la tarjeta/editor anterior. No elimines la integración ni sus credenciales.
+Mientras el actualizador pueda cargar, ejecuta el servicio administrador `liectroux_zk901.restore_previous_version`. En modo storage restaura la URL anterior existente; luego reinicia Home Assistant para cargar el backend restaurado. En modo YAML, actualiza la URL a la versión anterior según el aviso y reinicia.
+
+Si la integración no llega a importarse y el servicio no está disponible, detén Home Assistant y restaura el backend desde `config/.liectroux_zk901_updater/backups/<respaldo>/backend/`. El frontend anterior se conserva en `frontend/` dentro del mismo respaldo. Restaura la URL del recurso anterior y vuelve a iniciar Home Assistant. Si la copia administrada tampoco existe, usa la copia externa preparada en el paso 2.
 
 ## Límites de distribución
 
-El empaquetado genera archivos locales y los workflows guardan artefactos de build o los adjuntan a una release creada por el propietario. Ejecutar build/package no publica una release, no hace push y no instala cambios en HA.
+El empaquetado genera archivos locales y los workflows guardan artefactos de build o los adjuntan a una release estable publicada por el propietario. Ejecutar build/package no publica una release, no hace push y no instala cambios en HA.

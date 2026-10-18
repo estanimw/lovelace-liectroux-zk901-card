@@ -28,3 +28,5 @@ clean_areas:
       description: IDs de zonas persistidas, en el orden solicitado. La selección completa se valida antes de enviar un solo comando.
       selector:
         object: {}
+restore_previous_version:
+  description: Restaura la integración y la tarjeta desde el último respaldo. Reinicia Home Assistant manualmente después de usarlo.

@@ -101,6 +101,7 @@ const installBackend = ({ storageKey }) => {
         },
         changeMapId(mapId) { mutate(current => { current.mapId = mapId; }); },
         setAreas(areas) { state.areas = structuredClone(areas); state.revisionNumber += 1; persist(); },
+        setError(error) { state.status.error = structuredClone(error); persist(); },
         setPose(pose) { state.pose = structuredClone(pose); persist(); },
         setCatalogFresh(value) { catalogFresh = value; emit(); },
         setAvailable(value) { available = value; emit(); },
@@ -283,6 +284,20 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
         assert.equal(await page.locator(".zone-group[data-area-id='6']").count(), 0);
         assert.equal(await page.locator("img, camera-card").count(), 0);
         assert.equal(await page.locator("select#entity option[value='vacuum.liectroux_zk901']").count(), 1);
+
+        const cardElement = page.locator("liectroux-zk901-map-card").first();
+        await cardElement.evaluate(node => { node.style.width = "440px"; });
+        const narrowCardLayout = await cardElement.locator(".workspace").evaluate(node => getComputedStyle(node).gridTemplateColumns);
+        assert.equal(narrowCardLayout.trim().split(/\s+/).length, 1);
+        assert.ok(await page.evaluate(() => window.innerWidth > 720));
+        await cardElement.evaluate(node => { node.style.width = ""; });
+
+        await page.evaluate(() => window.__zkBackend.setError([]));
+        assert.equal(await cardElement.locator(".error-state").count(), 0);
+        await page.evaluate(() => window.__zkBackend.setError(["brush", 7]));
+        await cardElement.getByText('Error ["brush",7]', { exact: true }).waitFor();
+        await page.evaluate(() => window.__zkBackend.setError(0));
+        assert.equal(await cardElement.locator(".error-state").count(), 0);
 
         await page.getByRole("button", { name: "Editar", exact: true }).click();
         assert.equal(await invalidGeometryRow.isDisabled(), true);

@@ -21,6 +21,7 @@ AREA_INTERVAL_SECONDS = 300
 
 SERVICE_CLEAN_AREA = "clean_area"
 SERVICE_CLEAN_AREAS = "clean_areas"
+SERVICE_RESTORE_PREVIOUS_VERSION = "restore_previous_version"
 ATTR_AREA_ID = "area_id"
 ATTR_AREA_IDS = "area_ids"
 ATTR_TAG = "tag"
@@ -43,5 +44,6 @@ __all__ = [
     "MODEL",
     "SERVICE_CLEAN_AREA",
     "SERVICE_CLEAN_AREAS",
+    "SERVICE_RESTORE_PREVIOUS_VERSION",
     "STATUS_INTERVAL",
 ]

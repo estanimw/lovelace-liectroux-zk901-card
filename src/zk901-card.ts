@@ -126,6 +126,21 @@ function finitePosition(pose: ZonePose | null): pose is ZonePose {
     );
 }
 
+function errorText(value: unknown): string | null {
+    if (value === null || value === undefined || value === false) return null;
+    if (typeof value === "number" && (!Number.isFinite(value) || value === 0)) return null;
+    if (typeof value === "string" && (!value.trim() || value.trim() === "0")) return null;
+    if (Array.isArray(value) && value.length === 0) return null;
+    if (typeof value === "object") {
+        try {
+            return JSON.stringify(value) || null;
+        } catch {
+            return String(value);
+        }
+    }
+    return String(value);
+}
+
 function htmlError(result: ApplyAreaEditResponse): string {
     if (result.error === "conflict") return "El catálogo cambió mientras editabas. Tu borrador quedó intacto para que lo revises.";
     if (result.error === "uncertain") return "No se pudo confirmar el guardado. Recargá el catálogo antes de decidir si volvés a intentarlo.";
@@ -246,6 +261,7 @@ export class LiectrouxZK901MapCard extends LitElement {
         const busy = !!this._pendingAction;
         const paused = snapshot?.status.mode === "pause";
         const state = statusName(snapshot);
+        const robotError = errorText(snapshot?.status.error);
         const current = this.hass.states[this._config.entity];
         const friendlyName = typeof current?.attributes?.friendly_name === "string"
             ? current.attributes.friendly_name
@@ -266,8 +282,8 @@ export class LiectrouxZK901MapCard extends LitElement {
                         <div class="state-line">
                             <span class="status-dot ${snapshot?.available ? "online" : "offline"}" aria-hidden="true"></span>
                             <span>${state}</span>
-                            ${snapshot?.status.error && String(snapshot.status.error) !== "0" ? html`
-                                <span class="error-state">Error ${String(snapshot.status.error)}</span>
+                            ${robotError ? html`
+                                <span class="error-state">Error ${robotError}</span>
                             ` : nothing}
                         </div>
                     </div>
@@ -1367,6 +1383,7 @@ export class LiectrouxZK901MapCard extends LitElement {
     static styles = css`
         :host {
             display: block;
+            container: zk901-card / inline-size;
             color: var(--primary-text-color);
             --zk-card-border: var(--divider-color, rgba(127, 127, 127, 0.25));
             --zk-map-bg: color-mix(in srgb, var(--primary-background-color, #f6f7fb) 88%, var(--primary-color, #5672d8) 12%);
@@ -1539,7 +1556,7 @@ export class LiectrouxZK901MapCard extends LitElement {
         .map-stage {
             position: relative;
             overflow: hidden;
-            height: clamp(285px, 40vw, 540px);
+            height: clamp(285px, 40cqw, 540px);
             border: 1px solid var(--zk-card-border);
             border-radius: 13px;
             background: var(--zk-map-bg);
@@ -1681,10 +1698,10 @@ export class LiectrouxZK901MapCard extends LitElement {
         .setup { padding: 18px; color: var(--secondary-text-color); }
         .incompatible { display: grid; gap: 10px; }
         :focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
-        @media (max-width: 720px) {
+        @container zk901-card (max-width: 720px) {
             ha-card.card { padding: 13px; border-radius: 15px; }
             .workspace { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-            .map-stage { height: min(90vw, 420px); min-height: 290px; }
+            .map-stage { height: min(78cqw, 420px); min-height: 290px; }
             .daily-controls { gap: 7px; }
             .daily-controls > .button { flex: 1 1 calc(50% - 7px); padding-inline: 8px; font-size: .8rem; }
             .power-control { flex: 1 1 100%; justify-content: space-between; }
@@ -1692,7 +1709,7 @@ export class LiectrouxZK901MapCard extends LitElement {
             .map-column, .zones-panel { padding: 10px; }
             .footer { align-items: flex-start; flex-direction: column; gap: 4px; }
         }
-        @media (max-width: 390px) {
+        @container zk901-card (max-width: 390px) {
             .header { align-items: flex-start; }
             h2 { font-size: 1.04rem; }
             .battery { padding: 0 8px; }

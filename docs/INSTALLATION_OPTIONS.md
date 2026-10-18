@@ -4,7 +4,7 @@ Contexto: Home Assistant Container 2026.9.2. La integración y la tarjeta se des
 
 ## Qué está preparado hoy
 
-`npm run package` genera un ZIP conjunto con las rutas que HA espera, el JS por separado, un manifest de compatibilidad (frontend, backend, API y HA probado) y `SHA256SUMS`. Los workflows de build/release generan los mismos artefactos. No se publicó una release ni se implementó un instalador o actualizador remoto; la instalación y actualización son manuales y están descritas en [INSTALLATION.md](INSTALLATION.md).
+`npm run package` genera un ZIP conjunto con las rutas que HA espera, el JS por separado, un manifest de compatibilidad (frontend, backend, API y HA probado) y `SHA256SUMS`. Los workflows de build/release generan los mismos artefactos. La plataforma `update` ya consulta releases estables completas y ofrece instalación manual desde la UI; todavía no se publicó una release para probar el recorrido completo en HA. La primera instalación de la pareja 0.3.0 sigue siendo manual y está descrita en [INSTALLATION.md](INSTALLATION.md).
 
 El archivo Python se debe instalar en `custom_components/liectroux_zk901/` y el frontend debe estar servido y registrado como recurso. La tarjeta completa usa la suscripción y los servicios de la integración incluida en el mismo paquete. La configuración mediante **Añadir integración** no descarga por sí sola el código de este repositorio. En nuestra versión objetivo, un enlace GitHub no sustituye esos pasos.
 
@@ -14,36 +14,32 @@ Referencias: [ubicación de custom integrations](https://contributors.home-assis
 
 | Alternativa | Instalación inicial | Actualizaciones | Trabajo adicional |
 |---|---|---|---|
-| ZIP conjunto | Descargar, comprobar y colocar las dos carpetas en la configuración de HA. | Repetir con otra versión y conservar copia anterior. | El empaquetado ya está implementado; la copia sigue siendo manual. |
+| ZIP conjunto | Descargar, comprobar y colocar las dos carpetas en la configuración de HA. | Puede usarse como recuperación o instalación inicial anterior a 0.3.0. | El empaquetado ya está implementado; la copia sigue siendo manual. |
 | Instalador desde releases en el host de HA | Ejecutar un comando con versión y ruta real de la configuración. | El mismo comando descarga e instala otra versión. | Desarrollar el instalador, backup y rollback. Puede simplificar futuras actualizaciones. |
 | Despliegue desde la Mac por SSH | Un comando local envía el paquete al host y lo instala en su configuración. | Repetir el comando con una versión elegida. | Acceso SSH y ruta del volumen; implementar el script de despliegue. |
-| Actualizador propio dentro de HA | Primera instalación mediante ZIP o script. | Una entidad de actualización muestra releases y permite instalar desde la UI. | Más implementación y mantenimiento; HA aporta la interfaz, no el actualizador de este fork. |
+| Actualizador propio dentro de HA | Instalar manualmente la pareja 0.3.0 una vez. | Una entidad de actualización muestra releases y prepara la pareja frontend/backend desde la UI. | Implementado; la publicación y validación del recorrido completo siguen pendientes. |
 | Checkout/montajes Docker | Preparar un checkout versionado y montar los directorios de código/bundle en HA. | Cambiar de revisión, preparar el JS compilado y reiniciar. | Adecuado para desarrollo; requiere manejar Git, permisos y Docker. |
 
-## Recomendación para uso personal
+## Alcance del actualizador implementado
 
-Como mejora posterior, se puede preparar un **instalador versionado que consuma las releases de GitHub**. Su comportamiento debería ser:
+El actualizador consume las releases públicas estables de `estanimw/lovelace-liectroux-zk901-card`; no sigue `master`, no necesita token y solo instala cuando se pulsa **Instalar**. Antes de escribir valida:
 
-1. Recibir una versión explícita y la ruta del directorio de configuración del host, sin suponer que la ruta del host sea `/config`.
-2. Descargar el ZIP y sus hashes de esa release. Inspeccionar/descomprimir primero en un directorio temporal y comprobar su estructura.
-3. Conservar una copia de la integración y del JS que vaya a reemplazar.
-4. Reemplazar únicamente `custom_components/liectroux_zk901/` y el bundle de este proyecto; no borrar el resto de `custom_components`, `www` ni la configuración de HA. Reemplazar la carpeta propia permite retirar módulos obsoletos que una extracción por encima dejaría atrás.
-5. Proporcionar una operación de vuelta a la versión anterior. Un fallo de instalación debe restaurar también una pareja compatible de backend/frontend.
-6. Indicar que debe reiniciarse HA si cambió Python y recargarse el navegador si cambió JS. Un reinicio automático sería una opción explícita, no un efecto oculto.
+- los cuatro artefactos esperados, sus tamaños, hosts y hashes;
+- el manifest, tag y versiones iguales de frontend y backend;
+- cada ruta del ZIP, sus hashes y la ausencia de duplicados o symlinks;
+- espacio y permisos para crear el bundle versionado y el respaldo.
 
-El registro module se hace una vez por la UI de recursos. La actualización debe tener una estrategia explícita de caché/versionado; copiar el archivo no garantiza que todos los navegadores lo recarguen inmediatamente. No hace falta un token de HA para descargar e instalar archivos en el host; gestionar el recurso automáticamente por API sí requeriría una sesión autorizada.
+La instalación modifica solo `custom_components/liectroux_zk901/` y los bundles de esta tarjeta. Conserva un respaldo, registra cada paso y restaura ante fallo; un journal permite recuperar una interrupción al arrancar. El bundle nuevo usa una URL versionada. En modo storage, el recurso existente cambia mediante la colección Lovelace de Home Assistant después de que cargue el backend correspondiente. La instalación inicial 0.3.0 versiona el bundle que ya estaba instalado.
 
-Así GitHub es el origen de los paquetes, pero la aspiradora sigue controlándose por LAN y la UI se sirve desde HA. No se necesita Node.js en el host de HA ni descargar GitHub en cada apertura de la tarjeta.
+La entidad no depende de que la aspiradora esté conectada y no reinicia Home Assistant. Luego de instalar, el propietario reinicia HA y recarga el navegador. Con recursos YAML, el propietario debe cambiar manualmente la URL del bundle después del reinicio. El servicio administrador `liectroux_zk901.restore_previous_version` restaura el backend y la pareja del frontend; si la nueva integración no carga, [INSTALLATION.md](INSTALLATION.md) describe la recuperación externa.
 
-Un script vía SSH desde la Mac ofrece prácticamente la misma experiencia si no se quiere dejar un instalador en el servidor. Primero hay que conocer el acceso disponible y la ubicación del volumen de configuración; todavía no se verificó ese acceso.
+GitHub solo distribuye paquetes: la aspiradora continúa controlándose por LAN y la interfaz se sirve desde HA. No se necesita Node.js en el host ni se consulta GitHub al abrir la tarjeta.
 
 ## Actualizaciones desde la UI de HA
 
-Es posible añadir una plataforma `update` a nuestra integración para consultar releases y ofrecer un botón de instalación. [Home Assistant documenta las entidades de actualización y su método de instalación](https://contributors.home-assistant.io/core/entities/update/).
+La integración ya incluye una plataforma `update` que consulta releases y ofrece notas y el botón de instalación. Usa `UpdateEntity` y `async_install` disponibles en HA 2026.9.2. [Home Assistant documenta las entidades de actualización y su método de instalación](https://contributors.home-assistant.io/core/entities/update/).
 
-Eso no funciona automáticamente por añadir el repositorio: tendríamos que implementar descarga, comprobación, backup, reemplazo, errores y compatibilidad entre ambos componentes. La instalación inicial sigue necesitando un mecanismo que coloque el código en HA. Las escrituras necesitan un volumen de configuración con permisos adecuados, y el código Python actualizado necesita reiniciar HA.
-
-Es una alternativa cómoda si el propietario quiere usar exclusivamente la UI para las siguientes versiones. Se evalúa como una ampliación explícita del alcance; hoy no está implementada. Conviene resolver primero la tarjeta/integración funcional y el formato del paquete, que son la base común de cualquier instalador.
+El actualizador valida, prepara y respalda ambos componentes; la instalación inicial aún requiere colocar manualmente la versión 0.3.0. La experiencia integral queda pendiente hasta publicar y probar una release posterior desde la instancia HA objetivo.
 
 ## Simplificar también la distribución del JavaScript
 
@@ -56,5 +52,5 @@ Seguiría haciendo falta registrar/cargar el recurso en el frontend y resolver c
 - No se instala nada en HA como parte de esta reorganización de fuentes.
 - No hay autoactualización desde `master` ni ejecución de scripts remotos al cargar la tarjeta.
 - Un `git clone` o `git pull` por sí solo no compila ni instala el JS ni registra el recurso.
-- No modificar `.storage` para automatizar recursos; usar la UI o la API autorizada.
+- La integración actualiza recursos storage mediante la colección de recursos de HA; no escribe directamente archivos internos de `.storage`. Los recursos YAML requieren un cambio manual.
 - El material OEM, pruebas físicas, `.env` y credenciales permanecen fuera del paquete.

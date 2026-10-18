@@ -59,6 +59,9 @@
     },
     "button": {
       "clean_zone": {"name": "Limpiar zona"}
+    },
+    "update": {
+      "software": {"name": "Actualización de software"}
     }
   },
   "services": {
@@ -85,6 +88,10 @@
           "description": "Lista ordenada de IDs positivos del catálogo actual."
         }
       }
+    },
+    "restore_previous_version": {
+      "name": "Restaurar el software anterior de Liectroux ZK901",
+      "description": "Restaura la integración y la tarjeta desde el último respaldo del actualizador. Home Assistant se debe reiniciar manualmente."
     }
   }
 }

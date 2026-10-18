@@ -6,6 +6,7 @@ on:
 
 jobs:
   release:
+    if: github.event.release.prerelease == false
     permissions:
       contents: write
     name: Prepare release
@@ -31,7 +32,7 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           npm ci
-          npm version --git-tag-version=false --commit-hooks=false --allow-same-version "$RELEASE_TAG"
+          python3 scripts/set-release-version.py "$RELEASE_TAG"
           npm run package
 
       - name: Browser flows

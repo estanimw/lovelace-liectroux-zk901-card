@@ -10,14 +10,15 @@ Tarjeta Lovelace y custom integration de Home Assistant para controlar localment
 - Edición de zonas desde la tarjeta: crear, renombrar, cambiar tipo, mover y ajustar vértices, deshacer, descartar y eliminar.
 - Conflictos de catálogo y guardados de resultado incierto se muestran sin sobrescribir ni reenviar silenciosamente cambios.
 - Editor visual de configuración, diseño adaptable y etiquetas en español.
+- Entidad de actualización para consultar e instalar releases estables emparejadas de la integración y la tarjeta.
 
 Las áreas prohibidas y objetos del sistema no se ofrecen como destinos de limpieza. La tarjeta usa las coordenadas que expone la integración para dibujar las zonas; no representa LiDAR, paredes ni obstáculos.
 
 ## Compatibilidad
 
-La versión local preparada para instalar es **0.2.0**, tanto de la tarjeta como de la integración. Recupera las suscripciones tras recargar la integración y conserva los cambios de catálogo recibidos durante un guardado.
+La versión inicial prevista para instalar el actualizador es **0.3.0**, tanto de la tarjeta como de la integración. Después, la entidad `update` consulta releases públicas de este repositorio y permite elegir cuándo instalar. La instalación prepara los archivos; el propietario reinicia Home Assistant y recarga el navegador. No se actualiza el firmware ni se abre una conexión adicional con la aspiradora.
 
-El paquete se genera con versiones coordinadas de tarjeta, integración y API. El manifest dentro de cada ZIP declara las versiones frontend/backend, `card_api_version` y la versión de Home Assistant probada. El entorno de CI prueba Home Assistant 2026.9.2 y Python 3.14; consulta `dist/release-manifest.json` para el paquete concreto.
+El paquete se genera con versiones coordinadas de tarjeta, integración y API. El manifest dentro de cada ZIP declara las versiones frontend/backend, `card_api_version` y la versión de Home Assistant probada. El entorno de CI prueba Home Assistant 2026.9.2 y Python 3.14; consulta `dist/release-manifest.json` para el paquete concreto. Los releases borrador, preliminares, incompletos o con versiones y hashes inconsistentes no se ofrecen.
 
 La forma del comando multizona está cubierta por pruebas simuladas. La aceptación física multizona en este firmware queda pendiente de ejecutarse en el robot y no se infiere de que el ACK o las pruebas simuladas pasen.
 

@@ -18,6 +18,8 @@ ARCHIVE = "liectroux-zk901-ha.zip"
 def _integration_files(directory: Path) -> dict[str, bytes]:
     files: dict[str, bytes] = {}
     for path in sorted(directory.rglob("*")):
+        if path.is_symlink():
+            raise ValueError(f"Symlink in integration package: {path.relative_to(directory)}")
         relative = path.relative_to(directory)
         allowed = (
             len(relative.parts) == 1
@@ -29,11 +31,28 @@ def _integration_files(directory: Path) -> dict[str, bytes]:
         )
         if not allowed:
             continue
-        if path.is_symlink():
-            raise ValueError(f"Symlink in integration package: {relative}")
         if path.is_file():
             files[f"custom_components/{DOMAIN}/{relative.as_posix()}"] = path.read_bytes()
-    for required in ("__init__.py", "client.py", "manifest.json"):
+    required_files = (
+        "__init__.py",
+        "button.py",
+        "client.py",
+        "config_flow.py",
+        "const.py",
+        "coordinator.py",
+        "entity.py",
+        "manifest.json",
+        "select.py",
+        "sensor.py",
+        "services.yaml",
+        "translations/en.json",
+        "translations/es.json",
+        "update.py",
+        "updater.py",
+        "vacuum.py",
+        "zone_editor.py",
+    )
+    for required in required_files:
         if f"custom_components/{DOMAIN}/{required}" not in files:
             raise ValueError(f"Missing integration file: {required}")
     return files
@@ -50,11 +69,15 @@ def _compatibility(root: Path) -> dict[str, str | int]:
     ha_match = re.search(r"^homeassistant==([^\s;]+)\s*$", requirements, re.MULTILINE)
     if ha_match is None:
         raise ValueError("Pin the tested Home Assistant version in requirements-dev.txt")
+    frontend_version = json.loads((root / "package.json").read_text())["version"]
+    backend_version = json.loads(
+        (root / "custom_components" / DOMAIN / "manifest.json").read_text()
+    )["version"]
+    if frontend_version != backend_version:
+        raise ValueError("Frontend and integration versions must match")
     return {
-        "frontend_version": json.loads((root / "package.json").read_text())["version"],
-        "backend_version": json.loads(
-            (root / "custom_components" / DOMAIN / "manifest.json").read_text()
-        )["version"],
+        "frontend_version": frontend_version,
+        "backend_version": backend_version,
         "card_api_version": int(api_match.group(1)),
         "home_assistant_tested": ha_match.group(1),
     }
@@ -76,6 +99,8 @@ def build_package(root: Path, output: Path) -> dict:
     integration = json.loads(files[f"custom_components/{DOMAIN}/manifest.json"])
     if integration.get("domain") != DOMAIN:
         raise ValueError("Unexpected integration domain")
+    if integration.get("version") != package.get("version"):
+        raise ValueError("Integration and frontend versions must match")
     files[f"www/liectroux-zk901/{BUNDLE}"] = bundle
     try:
         commit = subprocess.check_output(

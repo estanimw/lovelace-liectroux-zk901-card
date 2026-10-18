@@ -10,8 +10,9 @@ from types import SimpleNamespace
 import pytest
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntries, ConfigEntryState
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import Unauthorized
+from homeassistant.exceptions import ConfigEntryNotReady, Unauthorized
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -287,6 +288,57 @@ def test_live_subscription_recovers_when_entry_is_reloaded(monkeypatch, tmp_path
         finally:
             for unsubscribe in connection.subscriptions.values():
                 unsubscribe()
+            await hass.async_stop(force=True)
+
+    asyncio.run(run())
+
+
+def test_offline_robot_does_not_block_update_platform(monkeypatch, tmp_path) -> None:
+    async def run() -> None:
+        hass = HomeAssistant(str(tmp_path))
+        forwarded: list[tuple[object, tuple[Platform, ...]]] = []
+
+        class OfflineClient:
+            def connect(self) -> None:
+                pass
+
+            def close(self) -> None:
+                pass
+
+            def set_status_listener(self, _listener) -> None:
+                pass
+
+            def set_connection_listener(self, _listener) -> None:
+                pass
+
+        class OfflineCoordinator:
+            def __init__(self, _hass, client, _entry) -> None:
+                self.client = client
+
+            def handle_status(self, _status) -> None:
+                pass
+
+            def handle_connection(self, _connected) -> None:
+                pass
+
+            async def async_config_entry_first_refresh(self) -> None:
+                raise ConfigEntryNotReady("robot offline")
+
+        async def forward_entry_setups(entry, platforms) -> None:
+            forwarded.append((entry, platforms))
+
+        try:
+            entry = FakeEntry()
+            entry.data = dict.fromkeys(("device_id", "host", "local_key", "uid", "sn"), "test")
+            hass.config_entries = SimpleNamespace(async_forward_entry_setups=forward_entry_setups)
+            monkeypatch.setattr(integration, "ZK901Client", lambda **_: OfflineClient())
+            monkeypatch.setattr(integration, "ZK901Coordinator", OfflineCoordinator)
+
+            assert await integration.async_setup_entry(hass, entry)
+            assert entry.runtime_data.client is not None
+            assert len(forwarded) == 1
+            assert Platform.UPDATE in forwarded[0][1]
+        finally:
             await hass.async_stop(force=True)
 
     asyncio.run(run())
