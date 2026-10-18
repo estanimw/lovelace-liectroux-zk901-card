@@ -16,6 +16,8 @@ Las áreas prohibidas y objetos del sistema no se ofrecen como destinos de limpi
 
 ## Compatibilidad
 
+La versión **0.3.2** incorpora registros de diagnóstico para selecciones de zonas, respuestas de comandos y eventos del robot, con identidades y credenciales ocultas. No modifica los comandos de limpieza.
+
 La versión **0.3.1** evita que la lectura inicial del manifest del actualizador bloquee el bucle principal de Home Assistant. Puede instalarse desde el actualizador de 0.3.0.
 
 La versión inicial prevista para instalar el actualizador es **0.3.0**, tanto de la tarjeta como de la integración. Después, la entidad `update` consulta releases públicas de este repositorio y permite elegir cuándo instalar. La instalación prepara los archivos; el propietario reinicia Home Assistant y recarga el navegador. No se actualiza el firmware ni se abre una conexión adicional con la aspiradora.

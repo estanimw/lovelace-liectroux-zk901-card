@@ -977,3 +977,82 @@ def test_area_edit_timeout_after_write_is_uncertain(
         if index == 102
     ]
     assert sent_types == expected_types
+
+
+@pytest.mark.parametrize("child_message", ["ok", "fail"])
+def test_spatial_diagnostics_include_selection_children_and_events_without_secrets(linked, caplog, child_message):
+    robot, device, holder = linked
+
+    def handler(obj):
+        ts = obj["dInfo"]["ts"]
+        if obj["infoType"] == 21004:
+            return [_ok(21004, ts, {"mapId": 336, "value": [
+                {"id": 7, "tag": "Pasillo", "active": "normal"},
+            ]})]
+        assert obj["infoType"] == 30000
+        return [
+            _ok(20003, ts, {"code": 118, "title": "EV_AREAS_CLEAN", "msg": {"code": 6052, "userId": UID, "sn": SN, "detail": LOCAL_KEY}}),
+            _ok(30000, ts, {"cmds": [
+                {"infoType": "21023", "message": child_message},
+                {"infoType": "21005", "message": "ok"},
+            ]}),
+        ]
+
+    holder["handler"] = handler
+    with caplog.at_level(logging.INFO):
+        if child_message == "fail":
+            with pytest.raises(client_mod.ZK901ProtocolError):
+                robot.clean_areas([7])
+        else:
+            robot.clean_areas([7])
+    sent = [decode_sent(value) for dp, value, _ in device.sent if str(dp) == "102"]
+    assert [obj["infoType"] for obj in sent] == [21004, 30000]
+    assert sent[-1]["data"]["cmds"][0]["data"]["cleanId"] == [7, -3]
+    assert '"mapId":336,"cleanId":[7,-3]' in caplog.text
+    assert f'spatial send ts={sent[-1]["dInfo"]["ts"]}' in caplog.text
+    assert f'"infoType":"21023","message":"{child_message}"' in caplog.text
+    assert '"infoType":"21005","message":"ok"' in caplog.text
+    assert 'ZK901 event 20003' in caplog.text
+    assert 'EV_AREAS_CLEAN' in caplog.text and '6052' in caplog.text
+    for secret in (UID, SN, DEVICE_ID, LOCAL_KEY):
+        assert secret not in caplog.text
+    assert "<redacted>" in caplog.text
+
+
+def test_state_diagnostics_only_log_transitions(linked, caplog):
+    robot, _device, _holder = linked
+    statuses = [
+        {"mode": "sweep", "subMode": "area", "pos": [1, 2], "reliable": 0},
+        {"mode": "sweep", "subMode": "area", "pos": [3, 4], "reliable": 0},
+        {"mode": "backcharge", "subMode": "area", "pos": [5, 6], "reliable": 1},
+    ]
+    with caplog.at_level(logging.INFO):
+        for status in statuses:
+            robot._observe({"infoType": 20001, "data": status})
+    records = [record.getMessage() for record in caplog.records if "ZK901 state" in record.getMessage()]
+    assert len(records) == 2
+    assert '"mode":"sweep"' in records[0]
+    assert '"mode":"backcharge"' in records[1]
+    assert '"pos":[5,6]' in records[1]
+    assert robot.status == statuses[-1]
+
+
+def test_rejected_pause_diagnostics_do_not_send_dock_command(linked, caplog):
+    robot, device, holder = linked
+    holder["handler"] = lambda obj: [_ok(21017, obj["dInfo"]["ts"], message="fail")]
+    with caplog.at_level(logging.INFO):
+        with pytest.raises(client_mod.ZK901ProtocolError):
+            robot.pause()
+    assert 'infoType=21017 data={"cmd":"pause"}' in caplog.text
+    assert '"message":"fail"' in caplog.text
+    assert not any(str(dp) == "3" for dp, _value, _nowait in device.sent)
+
+
+def test_event_diagnostics_are_bounded_and_redact_short_identities(linked, caplog):
+    robot, _device, _holder = linked
+    with caplog.at_level(logging.INFO):
+        robot._observe({"infoType": 20003, "data": {"token": "short", "sn": "tiny", "msg": "x" * 5000}})
+    message = next(record.getMessage() for record in caplog.records if "ZK901 event 20003" in record.getMessage())
+    assert "short" not in message and "tiny" not in message
+    assert "<redacted>" in message and "[truncated]" in message
+    assert len(message) < 4200

@@ -101,3 +101,17 @@ Las regresiones cubren una recarga con sustitución de coordinador y la respuest
 ## Corrección 0.3.1
 
 La lectura inicial de la versión del manifest se ejecuta en el ejecutor de HA, fuera del bucle principal. El gestor compartido se inicializa asincrónicamente y se reutiliza entre plataformas; dos solicitudes concurrentes conservan una sola instancia. La regresión comprueba el hilo de lectura y que acceder al gestor ya creado no vuelva a leer el archivo.
+
+## Diagnóstico LAN 0.3.2
+
+En nivel INFO, `custom_components.liectroux_zk901.client` registra:
+
+- `ZK901 spatial send`: timestamp de correlación, mapa, IDs seleccionados y estado previo.
+- `ZK901 spatial response`: respuesta del wrapper 30000 y de ambos comandos hijos, antes de validar su resultado.
+- `ZK901 event 20003`: código, título y contenido recibido, sin inferir que todos los eventos sean errores.
+- `ZK901 state`: modo/submodo, posición, orientación, fiabilidad y estadísticas al cambiar modo, submodo o errores. No repite cada lectura de posición.
+- `ZK901 control send/response`: pausa, continuar y detener con su ACK; DP3 registra los inicios totales y retornos solicitados.
+
+Los detalles se limitan a 4096 caracteres por entrada, se eliminan campos de identidad/credenciales incluso anidados y se ocultan los valores de credenciales conocidos antes de serializar. No se vuelca el sobre de envío completo ni se agregan consultas, reintentos, comandos o lectores de socket.
+
+Para una sesión de diagnóstico, activar nivel INFO para la integración mediante las herramientas de logging de HA (o activar temporalmente su registro de depuración en la UI). Un reinicio puede restablecer el nivel de logging; comprobarlo después de actualizar y antes de la prueba física. Los INFO se consultan en el registro completo del sistema, no solamente en la lista de errores de la UI. Las pruebas automatizadas simulan eventos y ACKs: la causa de una finalización anticipada de zona sigue requiriendo la evidencia del robot.

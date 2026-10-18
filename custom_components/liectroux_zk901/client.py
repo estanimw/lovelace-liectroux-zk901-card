@@ -801,19 +801,55 @@ class ZK901Client:
             self._mark_online()
         return matched
 
+    def _diagnostic_json(self, value: object) -> str:
+        """Render bounded diagnostic details without identity or credentials."""
+        private_keys = {"userid", "uid", "sn", "serialnumber", "localkey", "deviceid", "devid", "token", "password"}
+
+        def sanitize(item):
+            if isinstance(item, dict):
+                return {
+                    key: "<redacted>" if "".join(char for char in str(key).lower() if char.isalnum()) in private_keys else sanitize(child)
+                    for key, child in item.items()
+                }
+            if isinstance(item, (list, tuple)):
+                return [sanitize(child) for child in item]
+            if isinstance(item, str):
+                for secret in self._secrets:
+                    if secret:
+                        item = item.replace(secret, "<redacted>")
+            return item
+
+        rendered = json.dumps(sanitize(value), ensure_ascii=False, separators=(",", ":"), default=str)
+        return rendered if len(rendered) <= 4096 else rendered[:4096] + "…[truncated]"
+
+    def _diagnostic_status(self) -> dict:
+        return {
+            key: self._status.get(key)
+            for key in ("mode", "subMode", "pos", "phi", "reliable", "cleanTime", "cleanArea", "errorState")
+        }
+
     def _observe(self, obj: dict) -> None:
         info_type = str(obj.get("infoType"))
         if info_type == "20001":
             data = obj.get("data")
             if isinstance(data, dict):
                 stored = dict(data)
+                state_changed = any(
+                    self._status.get(key) != stored.get(key)
+                    for key in ("mode", "subMode", "errorState")
+                )
                 self._status = stored
+                if state_changed:
+                    _LOGGER.info("ZK901 state %s", self._diagnostic_json(self._diagnostic_status()))
                 listener = self._status_listener
                 if listener is not None:
                     try:
                         listener(stored)
                     except Exception:
                         _LOGGER.exception("status listener falló")
+            return
+        if info_type == "20003":
+            _LOGGER.info("ZK901 event 20003 %s", self._diagnostic_json(obj))
             return
         _LOGGER.debug(
             "evento infoType=%s message=%s",
@@ -896,16 +932,27 @@ class ZK901Client:
         require_ok: bool = False,
     ) -> dict | None:
         payload, request_ts = self._envelope(info_type, data, connection_type)
+        if info_type in (21017, 21012):
+            _LOGGER.info(
+                "ZK901 control send ts=%s infoType=%s data=%s status=%s",
+                request_ts, info_type, self._diagnostic_json(data),
+                self._diagnostic_json(self._diagnostic_status()),
+            )
         self._send_payload(payload)
         if timeout is None:
             return None
         obj = self._wait_for(_match_info(info_type, request_ts), timeout)
+        if info_type in (21017, 21012):
+            _LOGGER.info(
+                "ZK901 control response ts=%s infoType=%s response=%s",
+                request_ts, info_type, self._diagnostic_json(obj),
+            )
         if require_ok:
             _require_ok(obj, info_type)
         return obj
 
     def _set_dp3(self, value: str) -> None:
-        _LOGGER.debug("envío dp3=%s", value)
+        _LOGGER.info("ZK901 control send dp3=%s status=%s", value, self._diagnostic_json(self._diagnostic_status()))
         result = self._device.set_value(3, value, nowait=True)
         self._check_send_result(result)
 
@@ -1356,12 +1403,20 @@ class ZK901Client:
             },
             1,
         )
+        _LOGGER.info(
+            "ZK901 spatial send ts=%s selection=%s status=%s",
+            request_ts, self._diagnostic_json({"mapId": map_id, "cleanId": clean_ids, "extraAreas": extra_areas or []}),
+            self._diagnostic_json(self._diagnostic_status()),
+        )
         try:
             self._send_payload(payload)
         except Exception as err:
+            _LOGGER.warning("ZK901 spatial uncertain ts=%s phase=send", request_ts)
             raise ZK901CleanUncertain("send") from err
         try:
             response = self._wait_for(_match_info(30000, request_ts), timeout)
         except (ZK901Timeout, ZK901ConnectionError) as err:
+            _LOGGER.warning("ZK901 spatial uncertain ts=%s phase=ack", request_ts)
             raise ZK901CleanUncertain("ack") from err
+        _LOGGER.info("ZK901 spatial response ts=%s response=%s", request_ts, self._diagnostic_json(response))
         return _validate_compound(response)
