@@ -30,11 +30,15 @@ def _installed_version(hass: HomeAssistant) -> str:
     return version
 
 
-def get_update_manager(hass: HomeAssistant) -> ZK901UpdateManager:
+async def async_get_update_manager(hass: HomeAssistant) -> ZK901UpdateManager:
     manager = hass.data.get(DATA_UPDATER)
     if manager is None:
-        manager = ZK901UpdateManager(hass, _installed_version(hass))
-        hass.data[DATA_UPDATER] = manager
+        version = await hass.async_add_executor_job(_installed_version, hass)
+        # Another platform can finish initialization while the executor is reading.
+        manager = hass.data.get(DATA_UPDATER)
+        if manager is None:
+            manager = ZK901UpdateManager(hass, version)
+            hass.data[DATA_UPDATER] = manager
     return manager
 
 
@@ -44,7 +48,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Register one domain-wide updater, shared by all configured vacuums."""
-    manager = get_update_manager(hass)
+    manager = await async_get_update_manager(hass)
     await manager.async_process_startup_state()
     manager.register_platform(entry, async_add_entities, ZK901SoftwareUpdate)
     hass.async_create_task(manager.async_check(force=True))

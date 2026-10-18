@@ -113,7 +113,7 @@ from .const import (
     SERVICE_RESTORE_PREVIOUS_VERSION,
 )
 from .coordinator import ZK901Coordinator, card_update_signal
-from .update import DATA_UPDATER, get_update_manager
+from .update import DATA_UPDATER, async_get_update_manager
 from .updater import UpdaterError
 from .zone_editor import register_zone_editor_commands
 
@@ -158,7 +158,7 @@ PLATFORMS = (
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Registra la acción de zona incluso si aún no se cargó el robot."""
     register_zone_editor_commands(hass)
-    get_update_manager(hass)
+    await async_get_update_manager(hass)
     if _RECOVERED_INTERRUPTED_INSTALL:
         _LOGGER.warning("Se recuperó una instalación interrumpida de Liectroux ZK901")
     service.async_register_platform_entity_service(

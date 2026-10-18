@@ -16,6 +16,8 @@ Las áreas prohibidas y objetos del sistema no se ofrecen como destinos de limpi
 
 ## Compatibilidad
 
+La versión **0.3.1** evita que la lectura inicial del manifest del actualizador bloquee el bucle principal de Home Assistant. Puede instalarse desde el actualizador de 0.3.0.
+
 La versión inicial prevista para instalar el actualizador es **0.3.0**, tanto de la tarjeta como de la integración. Después, la entidad `update` consulta releases públicas de este repositorio y permite elegir cuándo instalar. La instalación prepara los archivos; el propietario reinicia Home Assistant y recarga el navegador. No se actualiza el firmware ni se abre una conexión adicional con la aspiradora.
 
 El paquete se genera con versiones coordinadas de tarjeta, integración y API. El manifest dentro de cada ZIP declara las versiones frontend/backend, `card_api_version` y la versión de Home Assistant probada. El entorno de CI prueba Home Assistant 2026.9.2 y Python 3.14; consulta `dist/release-manifest.json` para el paquete concreto. Los releases borrador, preliminares, incompletos o con versiones y hashes inconsistentes no se ofrecen.

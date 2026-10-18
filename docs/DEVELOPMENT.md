@@ -97,3 +97,7 @@ La tarjeta y la integración usan la versión 0.2.0. Las suscripciones abiertas 
 Durante un guardado, la tarjeta valida y ordena los snapshots entrantes, conserva el más reciente y aplica su catálogo al terminar la operación. Esa aplicación no vuelve a rechazar por secuencia el evento ya aceptado. Así se conserva también un cambio externo recibido mientras la respuesta del guardado estaba en tránsito.
 
 Las regresiones cubren una recarga con sustitución de coordinador y la respuesta de un guardado retenida mientras otra vista cambia una zona. Son pruebas sin hardware; la aceptación física se mantiene en la guía de instalación.
+
+## Corrección 0.3.1
+
+La lectura inicial de la versión del manifest se ejecuta en el ejecutor de HA, fuera del bucle principal. El gestor compartido se inicializa asincrónicamente y se reutiliza entre plataformas; dos solicitudes concurrentes conservan una sola instancia. La regresión comprueba el hilo de lectura y que acceder al gestor ya creado no vuelva a leer el archivo.

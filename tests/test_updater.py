@@ -8,6 +8,7 @@ import json
 import hashlib
 from pathlib import Path
 from types import SimpleNamespace
+import threading
 import zipfile
 
 import pytest
@@ -743,6 +744,37 @@ def test_real_ha_retains_pending_update_when_lovelace_resource_fails(tmp_path):
             assert any("no pudo cambiar el recurso" in message for message in messages)
         finally:
             unsubscribe()
+            await hass.async_stop(force=True)
+
+    asyncio.run(run())
+
+
+def test_manager_reads_installed_version_outside_event_loop(monkeypatch, tmp_path):
+    async def run():
+        hass = HomeAssistant(str(tmp_path))
+        event_loop_thread = threading.get_ident()
+        reads = []
+        original = update_platform._installed_version
+
+        def read_version(_hass):
+            assert threading.get_ident() != event_loop_thread
+            reads.append(True)
+            return original(_hass)
+
+        monkeypatch.setattr(update_platform, "_installed_version", read_version)
+        try:
+            first, second = await asyncio.gather(
+                update_platform.async_get_update_manager(hass),
+                update_platform.async_get_update_manager(hass),
+            )
+            assert first is second
+            assert reads
+            expected = json.loads(Path(update_platform.__file__).with_name("manifest.json").read_text())["version"]
+            assert first.installed_version == expected
+            reads.clear()
+            assert await update_platform.async_get_update_manager(hass) is first
+            assert not reads
+        finally:
             await hass.async_stop(force=True)
 
     asyncio.run(run())
