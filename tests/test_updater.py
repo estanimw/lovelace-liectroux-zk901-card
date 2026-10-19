@@ -304,7 +304,7 @@ def test_install_keeps_backup_and_existing_resource_until_restart(tmp_path):
         "0.2.0",
     )
     assert manager.restart_pending is True
-    assert "reiniciá Home Assistant" in manager.summary
+    assert "Reinicio pendiente" in manager.summary
 
 
 @pytest.mark.parametrize("phase", ["frontend", "backend", "commit"])
@@ -359,6 +359,7 @@ def test_install_failure_restores_backend_and_frontend(monkeypatch, tmp_path, ph
 
 
 def test_explicit_restore_reverts_backend_and_resource_url(monkeypatch, tmp_path):
+    monkeypatch.setattr(updater.ZK901UpdateManager, "_sync_restart_request", lambda self: None)
     class ResourceCollection:
         def __init__(self):
             self.items = [{
@@ -562,6 +563,7 @@ def test_storage_resource_update_modifies_one_existing_item_only(tmp_path):
 
 
 def test_pending_update_switches_resource_only_after_new_version_loads(monkeypatch, tmp_path):
+    monkeypatch.setattr(updater.ZK901UpdateManager, "_sync_restart_request", lambda self: None)
     class ResourceCollection:
         def __init__(self):
             self.items = [{
@@ -672,7 +674,15 @@ def test_real_ha_notifications_during_install_startup_and_restore(monkeypatch, t
             await manager.async_install()
             await hass.async_block_till_done()
             assert manager.restart_pending
-            assert any("quedó preparada" in message for message in messages)
+            assert updater.ir.async_get(hass).async_get_issue(updater.DOMAIN, "restart_required") is not None
+            entity = ZK901SoftwareUpdate(manager)
+            assert entity.installed_version == VERSION
+            assert entity.latest_version == VERSION
+            assert not entity.state == "on"
+            assert not entity.supported_features & UpdateEntityFeature.INSTALL
+            assert entity.extra_state_attributes["running_version"] == "0.2.0"
+            with pytest.raises(updater.UpdaterError, match="Reiniciá"):
+                await manager.async_install()
             assert resources.items[0]["url"] == updater._versioned_resource_url("0.2.0")
 
             if not before_restart:
@@ -688,7 +698,9 @@ def test_real_ha_notifications_during_install_startup_and_restore(monkeypatch, t
             assert json.loads((backend / "manifest.json").read_text())["version"] == "0.2.0"
             assert resources.items[0]["url"] == updater._versioned_resource_url("0.2.0")
             assert manager.pending_install is None
-            assert any("quedó restaurado" in message for message in messages)
+            assert manager.disk_version == "0.2.0"
+            assert manager.restart_pending is (not before_restart)
+            assert (updater.ir.async_get(hass).async_get_issue(updater.DOMAIN, "restart_required") is not None) is (not before_restart)
 
             # A cancelled update must not block a later installation after reboot.
             restored_manager = updater.ZK901UpdateManager(hass, "0.2.0")
@@ -786,3 +798,57 @@ def test_route_releases_require_capture_module_but_older_releases_remain_valid()
     _, metadata, _, _ = _package("0.4.0")
     with pytest.raises(updater.UpdaterError, match="trayectoria"):
         updater._validate_metadata(metadata, "0.4.0")
+
+
+def test_restart_confirmation_requires_submit_and_rechecks_pending(tmp_path):
+    from custom_components.liectroux_zk901.repairs import RestartRequiredFlow
+
+    async def run():
+        hass = HomeAssistant(str(tmp_path))
+        calls = []
+        async def restart(call):
+            calls.append(call.service)
+        hass.services.async_register("homeassistant", "restart", restart)
+        manager = updater.ZK901UpdateManager(hass, "0.2.0")
+        hass.data[update_platform.DATA_UPDATER] = manager
+        updater._write_json_atomic(manager.state_dir / updater.PENDING_FILE, {"version": VERSION})
+        try:
+            manager._sync_restart_request()
+            flow = RestartRequiredFlow()
+            flow.hass = hass
+            flow.handler = updater.DOMAIN
+            flow.issue_id = "restart_required"
+            result = await flow.async_step_init()
+            assert result["type"] == "form"
+            assert calls == []
+            result = await flow.async_step_confirm({})
+            assert result["type"] == "create_entry"
+            assert calls == ["restart"]
+            (manager.state_dir / updater.PENDING_FILE).unlink()
+            result = await flow.async_step_confirm({})
+            assert result["type"] == "abort"
+            assert calls == ["restart"]
+            assert updater.ir.async_get(hass).async_get_issue(updater.DOMAIN, "restart_required") is None
+        finally:
+            await hass.async_stop(force=True)
+    asyncio.run(run())
+
+
+def test_native_restart_request_is_used_when_available(monkeypatch, tmp_path):
+    async def run():
+        hass = HomeAssistant(str(tmp_path))
+        requests = []
+        monkeypatch.setattr(updater, "system_state", SimpleNamespace(
+            async_set_home_assistant_restart_required=lambda hass, domain: requests.append(domain)
+        ))
+        manager = updater.ZK901UpdateManager(hass, "0.2.0")
+        try:
+            manager._sync_restart_request()
+            assert requests == []
+            updater._write_json_atomic(manager.state_dir / updater.PENDING_FILE, {"version": VERSION})
+            manager._sync_restart_request()
+            assert requests == [updater.DOMAIN]
+            assert updater.ir.async_get(hass).async_get_issue(updater.DOMAIN, "restart_required") is None
+        finally:
+            await hass.async_stop(force=True)
+    asyncio.run(run())

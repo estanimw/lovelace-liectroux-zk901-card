@@ -71,6 +71,7 @@ class ZK901SoftwareUpdate(UpdateEntity):
     _attr_icon = "mdi:package-up"
     _attr_title = "Liectroux ZK901"
     _attr_auto_update = False
+    _attr_restart_required = True
     _attr_supported_features = (
         UpdateEntityFeature.INSTALL | UpdateEntityFeature.RELEASE_NOTES
     )
@@ -83,7 +84,14 @@ class ZK901SoftwareUpdate(UpdateEntity):
 
     def _sync_manager_state(self) -> None:
         release = self.manager.release
-        self._attr_installed_version = self.manager.installed_version
+        self._attr_installed_version = self.manager.disk_version
+        self._attr_supported_features = UpdateEntityFeature.RELEASE_NOTES
+        if not self.manager.restart_pending:
+            self._attr_supported_features |= UpdateEntityFeature.INSTALL
+        self._attr_extra_state_attributes = {
+            "running_version": self.manager.installed_version,
+            "restart_required": self.manager.restart_pending,
+        }
         self._attr_latest_version = release.version if release else None
         self._attr_release_url = release.release_url if release else None
         self._attr_release_summary = self.manager.summary

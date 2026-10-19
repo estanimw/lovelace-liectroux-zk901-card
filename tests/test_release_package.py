@@ -27,7 +27,7 @@ def test_package_excludes_local_data_and_contains_both_components(tmp_path):
     for name in (
         "__init__.py", "button.py", "client.py", "config_flow.py",
         "coordinator.py", "entity.py", "select.py", "sensor.py", "update.py",
-        "updater.py", "vacuum.py", "zone_editor.py", "trajectory.py", "services.yaml",
+        "updater.py", "repairs.py", "vacuum.py", "zone_editor.py", "trajectory.py", "services.yaml",
     ):
         (integration / name).write_text("# production source\n")
     for language in ("en", "es"):
@@ -76,7 +76,7 @@ def test_package_rejects_version_mismatch(tmp_path):
     for name in (
         "__init__.py", "button.py", "client.py", "config_flow.py",
         "coordinator.py", "entity.py", "select.py", "sensor.py", "update.py",
-        "updater.py", "vacuum.py", "zone_editor.py", "trajectory.py", "services.yaml",
+        "updater.py", "repairs.py", "vacuum.py", "zone_editor.py", "trajectory.py", "services.yaml",
     ):
         (integration / name).write_text("# production source\n")
     for language in ("en", "es"):

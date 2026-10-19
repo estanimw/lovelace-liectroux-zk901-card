@@ -52,16 +52,24 @@
       }
     },
     "sensor": {
-      "battery": {"name": "Battery"}
+      "battery": {
+        "name": "Battery"
+      }
     },
     "select": {
-      "zone": {"name": "Zone"}
+      "zone": {
+        "name": "Zone"
+      }
     },
     "button": {
-      "clean_zone": {"name": "Clean zone"}
+      "clean_zone": {
+        "name": "Clean zone"
+      }
     },
     "update": {
-      "software": {"name": "Software update"}
+      "software": {
+        "name": "Software update"
+      }
     }
   },
   "services": {
@@ -92,6 +100,23 @@
     "restore_previous_version": {
       "name": "Restore previous Liectroux ZK901 software",
       "description": "Restore the previous integration and card files from the last updater backup. Home Assistant must be restarted manually."
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart required",
+      "description": "Restart Home Assistant to activate the Liectroux ZK901 changes.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "Restart Home Assistant now to apply the changes?"
+          }
+        },
+        "abort": {
+          "restart_not_required": "No changes are waiting for a restart."
+        }
+      }
     }
   }
 }

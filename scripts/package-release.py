@@ -48,6 +48,7 @@ def _integration_files(directory: Path) -> dict[str, bytes]:
         "translations/en.json",
         "translations/es.json",
         "update.py",
+        "repairs.py",
         "updater.py",
         "vacuum.py",
         "zone_editor.py",

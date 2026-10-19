@@ -52,16 +52,24 @@
       }
     },
     "sensor": {
-      "battery": {"name": "Batería"}
+      "battery": {
+        "name": "Batería"
+      }
     },
     "select": {
-      "zone": {"name": "Zona"}
+      "zone": {
+        "name": "Zona"
+      }
     },
     "button": {
-      "clean_zone": {"name": "Limpiar zona"}
+      "clean_zone": {
+        "name": "Limpiar zona"
+      }
     },
     "update": {
-      "software": {"name": "Actualización de software"}
+      "software": {
+        "name": "Actualización de software"
+      }
     }
   },
   "services": {
@@ -92,6 +100,23 @@
     "restore_previous_version": {
       "name": "Restaurar el software anterior de Liectroux ZK901",
       "description": "Restaura la integración y la tarjeta desde el último respaldo del actualizador. Home Assistant se debe reiniciar manualmente."
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Reinicio pendiente",
+      "description": "Reiniciá Home Assistant para activar los cambios de Liectroux ZK901.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Reiniciar Home Assistant",
+            "description": "¿Reiniciar Home Assistant ahora para aplicar los cambios?"
+          }
+        },
+        "abort": {
+          "restart_not_required": "No hay cambios pendientes de reinicio."
+        }
+      }
     }
   }
 }

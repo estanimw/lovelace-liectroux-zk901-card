@@ -1,6 +1,6 @@
 {
     "name": "liectroux-zk901-map-card",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "description": "Mapa, controles y editor de zonas para la integración local Liectroux ZK901 de Home Assistant",
     "keywords": [
         "home-assistant",

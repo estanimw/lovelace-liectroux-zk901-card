@@ -25,6 +25,13 @@ from homeassistant.components.lovelace.const import LOVELACE_DATA, MODE_STORAGE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
+
+try:
+    from homeassistant.helpers import system_state
+except ImportError:  # Home Assistant before the native restart indicator.
+    system_state = None
+
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -844,15 +851,40 @@ class ZK901UpdateManager:
         return _read_json(self.state_dir / LAST_INSTALL_FILE)
 
     @property
-    def restart_pending(self) -> bool:
+    def disk_version(self) -> str:
+        """Version installed on disk, distinct from the running Python modules."""
         pending = self.pending_install
-        return bool(pending and pending.get("version") != self.installed_version)
+        if pending and isinstance(pending.get("version"), str):
+            return pending["version"]
+        record = self.last_install
+        if record and record.get("restored") and isinstance(record.get("restored_to"), str):
+            return record["restored_to"]
+        return self.installed_version
+
+    @property
+    def restart_pending(self) -> bool:
+        return self.disk_version != self.installed_version
+
+    def _sync_restart_request(self) -> None:
+        """Use HA's native restart prompt, with Repairs on older HA releases."""
+        if not self.restart_pending:
+            ir.async_delete_issue(self.hass, DOMAIN, "restart_required")
+            return
+        if system_state is not None:
+            ir.async_delete_issue(self.hass, DOMAIN, "restart_required")
+            system_state.async_set_home_assistant_restart_required(self.hass, DOMAIN)
+        else:
+            ir.async_create_issue(
+                self.hass, DOMAIN, "restart_required",
+                is_fixable=True, severity=ir.IssueSeverity.WARNING,
+                translation_key="restart_required",
+            )
+        persistent_notification.async_dismiss(self.hass, _NOTIFICATION_ID)
 
     @property
     def summary(self) -> str:
-        pending = self.pending_install
-        if pending and pending.get("version") != self.installed_version:
-            return f"La versión {pending.get('version')} está preparada; reiniciá Home Assistant para activarla."
+        if self.restart_pending:
+            return f"Versión {self.disk_version} instalada. Reinicio pendiente."
         last_install = self.last_install
         if last_install and last_install.get("resource_status") == "failed":
             detail = last_install.get("resource_error")
@@ -915,7 +947,7 @@ class ZK901UpdateManager:
             raise UpdaterError("Ya hay una instalación o restauración en curso")
         async with self.install_lock:
             pending = self.pending_install
-            if pending:
+            if pending or self.restart_pending:
                 raise UpdaterError("Hay una versión preparada. Reiniciá Home Assistant antes de instalar otra.")
             release = self.release
             if version is not None:
@@ -968,12 +1000,7 @@ class ZK901UpdateManager:
                 raise
             except Exception as err:
                 raise UpdaterError(f"No se pudo preparar la actualización: {err}") from err
-            persistent_notification.async_create(
-                self.hass,
-                f"La versión {release.version} quedó preparada. Reiniciá Home Assistant para cargar el backend y luego recargá el navegador.",
-                title="Actualización Liectroux ZK901",
-                notification_id=_NOTIFICATION_ID,
-            )
+            self._sync_restart_request()
             self._write_entity_state()
 
     async def async_restore_previous(self) -> None:
@@ -1024,12 +1051,7 @@ class ZK901UpdateManager:
                     f"No se pudo completar la restauración: {err}. "
                     "Si el proceso llegó a escribir el journal, reiniciá Home Assistant para recuperar el backend."
                 ) from err
-            persistent_notification.async_create(
-                self.hass,
-                f"El backend {record.get('previous_version')} quedó restaurado en disco. Reiniciá Home Assistant para cargarlo.",
-                title="Restauración Liectroux ZK901 preparada",
-                notification_id=_NOTIFICATION_ID,
-            )
+            self._sync_restart_request()
             self._write_entity_state()
 
     async def async_process_startup_state(self) -> None:
@@ -1037,6 +1059,7 @@ class ZK901UpdateManager:
             if self._startup_processed:
                 return
             self._startup_processed = True
+            self._sync_restart_request()
             pending = self.pending_install
             if pending and pending.get("version") == self.installed_version:
                 if pending.get("resource_mode") == MODE_STORAGE:
