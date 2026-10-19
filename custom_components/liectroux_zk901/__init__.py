@@ -210,11 +210,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         sn=data[CONF_SN],
     )
     coordinator = ZK901Coordinator(hass, client, entry)
+    await coordinator.trajectory.start()
+
+    async def stop_trajectory(_event) -> None:
+        await coordinator.trajectory.stop()
+
+    entry.async_on_unload(hass.bus.async_listen_once("homeassistant_stop", stop_trajectory))
     client.set_status_listener(coordinator.handle_status)
     client.set_connection_listener(coordinator.handle_connection)
     try:
         await hass.async_add_executor_job(client.connect)
     except Exception as err:
+        await coordinator.trajectory.stop()
         await hass.async_add_executor_job(client.close)
         if isinstance(err, (ZK901Error, ConfigEntryNotReady)):
             raise ConfigEntryNotReady("La aspiradora no está disponible") from err
@@ -228,6 +235,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     except Exception:
+        await coordinator.trajectory.stop()
         await hass.async_add_executor_job(client.close)
         raise
     # Existing WebSocket subscriptions survive an integration reload.
@@ -241,6 +249,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         coordinator: ZK901Coordinator = entry.runtime_data
         coordinator.mark_unloaded()
+        await coordinator.trajectory.stop()
         await hass.async_add_executor_job(coordinator.client.close)
     else:
         _LOGGER.debug("no se pudieron descargar las plataformas")

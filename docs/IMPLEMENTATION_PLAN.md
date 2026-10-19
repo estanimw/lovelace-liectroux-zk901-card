@@ -2,6 +2,8 @@
 
 Fecha: 2026-10-18. Base del fork: `5b3dc1b`, rama `master`.
 
+Ampliación 0.4.0 (2026-10-19): se añade captura autónoma e historial de trayectoria, fuera del alcance original sin recorrido. Implementación y límites en [DEVELOPMENT.md](DEVELOPMENT.md#captura-autónoma-de-trayectoria-040). La aceptación física de esta ampliación sigue pendiente.
+
 Revisión posterior: paquete local 0.2.0 con recuperación tras recargar la integración y conservación de actualizaciones de catálogo durante el guardado. Pendiente de instalar y aceptar con el robot según la guía.
 
 ## Objetivo y alcance acordado

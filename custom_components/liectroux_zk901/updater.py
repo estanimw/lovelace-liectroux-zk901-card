@@ -201,6 +201,8 @@ def _validate_metadata(metadata: object, version: str) -> dict[str, Any]:
     files = metadata.get("files")
     if not isinstance(files, dict) or not _REQUIRED_BACKEND_FILES <= set(files):
         raise UpdaterError("El manifest no declara los archivos mínimos del paquete")
+    if (_version_parts(version) or (0, 0, 0)) >= (0, 4, 0) and f"custom_components/{DOMAIN}/trajectory.py" not in files:
+        raise UpdaterError("Falta el módulo de captura de trayectoria del paquete")
     if len(files) > MAX_FILES:
         raise UpdaterError("El manifest declara demasiados archivos")
     for name, digest in files.items():

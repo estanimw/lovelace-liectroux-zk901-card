@@ -84,6 +84,7 @@ const installBackend = ({ storageKey }) => {
         status: structuredClone(state.status),
         pose: structuredClone(state.pose),
         catalog: catalog(),
+        trajectory: state.trajectory,
         capabilities: { subscribe: true, clean_areas: true, zone_edit: true, current_position: true, cleaning_level: true },
     });
     const mutate = (callback) => {
@@ -103,6 +104,7 @@ const installBackend = ({ storageKey }) => {
         setAreas(areas) { state.areas = structuredClone(areas); state.revisionNumber += 1; persist(); },
         setError(error) { state.status.error = structuredClone(error); persist(); },
         setPose(pose) { state.pose = structuredClone(pose); persist(); },
+        setTrajectory(trajectory) { state.trajectory = structuredClone(trajectory); persist(); },
         setCatalogFresh(value) { catalogFresh = value; emit(); },
         setAvailable(value) { available = value; emit(); },
         setApiVersion(value) { apiVersion = value; },
@@ -162,6 +164,11 @@ const installBackend = ({ storageKey }) => {
             if (message.type === "liectroux_zk901/card/refresh") {
                 const sub = { generation: `refresh-${Date.now()}`, sequence: 0 };
                 return { ok: true, ...snapshot(sub) };
+            }
+            if (message.type === "liectroux_zk901/trajectory/clear") {
+                state.trajectory = { ...state.trajectory, sessions: [], current_id: null, coverage: { cell_size: 100, cells: [] } };
+                persist();
+                return { ok: true };
             }
             if (message.type !== "liectroux_zk901/zone_editor/apply") throw new Error(`Unexpected WebSocket command: ${message.type}`);
             if (message.base_map_id !== state.mapId || message.base_revision !== revision()) {
@@ -528,6 +535,48 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
         assert.equal(await page.evaluate(() => window.__zkCalls.length), firstTabCalls);
         await page.evaluate(() => window.__secondCard.remove());
         await page.waitForFunction(() => window.__zkBackend.subscriberCount() === 1);
+
+        // Persistent routes arrive as snapshots, never through frontend LAN polling.
+        await page.evaluate(() => window.__zkBackend.setTrajectory({
+            current_id: "second", updated_at: new Date().toISOString(), error: null,
+            capturing: true, interval_seconds: 20,
+            coverage: { cell_size: 100, cells: [[0, 0], [1, 1], [10, 10]] },
+            sessions: [
+                { id: "first", started_at: "2026-10-19T10:00:00Z", ended_at: "2026-10-19T10:10:00Z", incomplete: true,
+                  segments: [{ kind: "cleaning", points: [[0, 0], [100, 200]] }] },
+                { id: "second", started_at: "2026-10-19T11:00:00Z", ended_at: null, incomplete: false,
+                  segments: [{ kind: "cleaning", points: [[1000, 1000], [1200, 1400]] }, { kind: "return", points: [[1400, 1400], [1500, 1300]] }] },
+            ],
+        }));
+        await page.getByText("Capturando cada 20 s", { exact: false }).waitFor();
+        assert.equal(await page.locator(".route-layer polyline").count(), 2);
+        assert.equal(await page.locator(".coverage-layer").count(), 1);
+        await page.getByLabel("Cobertura estimada", { exact: true }).uncheck();
+        assert.equal(await page.locator(".coverage-layer").count(), 0);
+        assert.equal(await page.locator(".route-layer polyline").count(), 2);
+        await page.getByLabel("Sesión del recorrido").selectOption("first");
+        assert.equal(await page.locator(".route-layer polyline").count(), 1);
+        assert.equal(await page.locator(".route-layer polyline").first().getAttribute("points"), "0,0 100,-200");
+        await page.getByLabel("Sesión del recorrido").selectOption("all");
+        assert.equal(await page.locator(".route-layer polyline").count(), 3);
+        await page.getByLabel("Recorrido", { exact: true }).uncheck();
+        assert.equal(await page.locator(".route-layer polyline").count(), 0);
+        await page.getByLabel("Recorrido", { exact: true }).check();
+        await page.getByLabel("Cobertura estimada", { exact: true }).check();
+        await page.setViewportSize({ width: 390, height: 844 });
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await page.screenshot({ path: path.join(tmpdir(), "zk901-route-mobile.png"), fullPage: true });
+        await page.setViewportSize({ width: 1280, height: 1000 });
+        await page.screenshot({ path: path.join(tmpdir(), "zk901-route-desktop.png"), fullPage: true });
+        await page.getByRole("button", { name: "Reiniciar reconstrucción", exact: true }).click();
+        const clearCalls = () => page.evaluate(() => window.__zkWsCalls.filter(call => call.type === "liectroux_zk901/trajectory/clear").length);
+        assert.equal(await clearCalls(), 0);
+        await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+        assert.equal(await clearCalls(), 0);
+        await page.getByRole("button", { name: "Reiniciar reconstrucción", exact: true }).click();
+        await page.getByRole("button", { name: "Borrar recorridos", exact: true }).click();
+        await page.waitForFunction(() => window.__zkWsCalls.some(call => call.type === "liectroux_zk901/trajectory/clear"));
+        assert.equal(await page.locator(".route-layer polyline").count(), 0);
 
         const deniedPage = await context.newPage();
         await deniedPage.goto(origin);

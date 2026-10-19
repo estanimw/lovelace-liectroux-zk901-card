@@ -529,6 +529,7 @@ class ZK901Client:
         *,
         mask: int = 0,
         expected_path_id: object = None,
+        detect_path_change: bool = False,
         timeout: float = 5.0,
     ) -> dict:
         return self._call(
@@ -536,6 +537,7 @@ class ZK901Client:
                 start_pos,
                 mask=mask,
                 expected_path_id=expected_path_id,
+                detect_path_change=detect_path_change,
                 timeout=timeout,
             ),
             timeout,
@@ -970,6 +972,7 @@ class ZK901Client:
         *,
         mask: int,
         expected_path_id: object,
+        detect_path_change: bool,
         timeout: float,
     ) -> dict:
         if (
@@ -985,7 +988,17 @@ class ZK901Client:
             {"startPos": start_pos, "mask": mask},
             connection_type=2,
         )
-        obj = self._wait_for(_match_path(start_pos, expected_path_id), timeout)
+        strict_match = _match_path(start_pos, expected_path_id)
+
+        def match(obj: dict) -> bool:
+            data = obj.get("data")
+            changed = (detect_path_change and expected_path_id is not None
+                       and str(obj.get("infoType")) == "21011" and isinstance(data, dict)
+                       and isinstance(data.get("pathID"), (str, int))
+                       and data["pathID"] != expected_path_id)
+            return strict_match(obj) or bool(changed)
+
+        obj = self._wait_for(match, timeout)
         data = obj.get("data")
         if not isinstance(data, dict):
             raise ZK901ProtocolError("21011 no contiene data")

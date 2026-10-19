@@ -1056,3 +1056,19 @@ def test_event_diagnostics_are_bounded_and_redact_short_identities(linked, caplo
     assert "short" not in message and "tiny" not in message
     assert "<redacted>" in message and "[truncated]" in message
     assert len(message) < 4200
+
+
+def test_path_change_is_reported_without_reusing_old_cursor(linked):
+    robot, device, holder = linked
+    holder["handler"] = lambda obj: [{
+        "message": "ok", "infoType": 21011,
+        "data": {"pathID": 12, "startPos": 0, "totalPoints": 1,
+                 "pointCounts": 1, "posArray": [[5, 6]]},
+    }]
+    response = robot.get_path_chunk(50, expected_path_id=11, detect_path_change=True, timeout=2)
+    assert response["pathID"] == 12
+    assert response["startPos"] == 0
+    sent = decode_sent(device.sent[-1][1])
+    assert sent["connectionType"] == 2
+    assert sent["data"]["startPos"] == 50
+    assert sent["data"]["mask"] == 0

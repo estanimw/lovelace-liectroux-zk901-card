@@ -18,6 +18,14 @@ export interface ZonePose {
     observed_at: string | null;
 }
 
+export interface RouteSession {
+    id: string;
+    started_at: string;
+    ended_at: string | null;
+    incomplete: boolean;
+    segments: { kind: "cleaning" | "return" | "unknown"; points: number[][] }[];
+}
+
 export interface CardSnapshot {
     ok?: boolean;
     api_version: number;
@@ -35,6 +43,15 @@ export interface CardSnapshot {
         observed_at: string | null;
     };
     pose: ZonePose | null;
+    trajectory?: {
+        sessions: RouteSession[];
+        current_id: string | null;
+        updated_at: string | null;
+        error: string | null;
+        capturing: boolean;
+        interval_seconds: number;
+        coverage?: { cell_size: number; cells: number[][] };
+    };
     catalog: {
         map_id: number | string | null;
         revision: string | null;

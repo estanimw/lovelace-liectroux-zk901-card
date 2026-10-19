@@ -18,6 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .trajectory import TrajectoryCapture
 from .client import ZK901Client, ZK901Error, area_catalog_revision
 from .const import AREA_INTERVAL_SECONDS, CARD_API_VERSION, DOMAIN, STATUS_INTERVAL
 
@@ -55,6 +56,7 @@ class ZK901Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._areas_error: str | None = None
         self._status_observed_at: str | None = None
         self._available = False
+        self.trajectory = TrajectoryCapture(self)
 
     @property
     def available(self) -> bool:
@@ -85,6 +87,7 @@ class ZK901Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         return status, areas
 
     def _set_data(self, status: dict, areas: dict) -> None:
+        self.trajectory.observe(status, areas.get("map_id"))
         self.async_set_updated_data(
             {
                 "status": status,
@@ -199,6 +202,7 @@ class ZK901Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "observed_at": self._status_observed_at,
             },
             "pose": self.editor_pose(),
+            "trajectory": self.trajectory.history.snapshot(areas.get("map_id"), self.trajectory.active),
             "catalog": {
                 "map_id": areas.get("map_id"),
                 "revision": revision,
@@ -225,6 +229,7 @@ class ZK901Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         def _apply() -> None:
             self._available = online
             if not online:
+                self.trajectory.disconnected()
                 if self.last_update_success:
                     self.async_set_update_error(
                         UpdateFailed("Sin conexión con la aspiradora")
@@ -273,6 +278,7 @@ class ZK901Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._areas_error_logged_at = now
                 if not isinstance(areas, dict):
                     areas = _empty_areas()
+        self.trajectory.observe(status, areas.get("map_id"))
         return {
             "status": status,
             "status_observed_at": status_observed_at,

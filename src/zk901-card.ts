@@ -171,6 +171,10 @@ export class LiectrouxZK901MapCard extends LitElement {
     @state() private _pendingAction = "";
     @state() private _uncertainAction = false;
     @state() private _zoom = 1;
+    @state() private _showRoute = true;
+    @state() private _showCoverage = true;
+    @state() private _routeSession = "latest";
+    @state() private _confirmClearRoute = false;
 
     private _unsubscribe?: () => void;
     private _subscribedEntity = "";
@@ -349,6 +353,7 @@ export class LiectrouxZK901MapCard extends LitElement {
                                 <button class="icon-button fit-button" title="Ajustar el plano" @click=${this._fitMap}>Ajustar</button>
                             </div>
                         </div>
+                        ${this._snapshot?.trajectory ? this._renderRouteTools() : nothing}
                         <div class="map-stage ${poseStale ? "pose-stale" : ""}">
                             ${this._renderMap()}
                             ${poseStale ? html`<div class="map-overlay" role="status">La última posición es antigua; no se muestra como actual.</div>` : nothing}
@@ -403,7 +408,7 @@ export class LiectrouxZK901MapCard extends LitElement {
 
                 <footer class="footer">
                     <span>API ${this._snapshot?.api_version ?? "—"} · Tarjeta ${CARD_VERSION}</span>
-                    <span>Sin recorrido LiDAR ni paredes reconstruidas</span>
+                    <span>Trayectoria por telemetría · sin paredes reconstruidas</span>
                 </footer>
             </ha-card>
         `;
@@ -542,6 +547,7 @@ export class LiectrouxZK901MapCard extends LitElement {
                 </defs>
                 <rect x=${view.minX} y=${-view.maxY} width=${viewWidth} height=${viewHeight} class="map-background"></rect>
                 <rect x=${view.minX} y=${-view.maxY} width=${viewWidth} height=${viewHeight} fill=${`url(#${this._gridId})`}></rect>
+                ${this._renderRoutes()}
                 ${visibleAreas.map(area => this._renderArea(area, false))}
                 ${showDraft && draftArea ? this._renderDraftArea(draftArea) : nothing}
                 ${pose ? svg`
@@ -553,7 +559,7 @@ export class LiectrouxZK901MapCard extends LitElement {
                 ` : nothing}
                 ${areas.length === 0 ? svg`
                     <text x=${(view.minX + view.maxX) / 2} y=${-((view.minY + view.maxY) / 2)} class="empty-map-label">
-                        Sin zonas guardadas · sin paredes ni escala física
+                        Sin zonas guardadas · plano sin paredes
                     </text>
                 ` : nothing}
             </svg>
@@ -758,12 +764,79 @@ export class LiectrouxZK901MapCard extends LitElement {
         `;
     }
 
+    private _renderRouteTools(): TemplateResult {
+        const route = this._snapshot?.trajectory;
+        const sessions = route?.sessions ?? [];
+        return html`
+            <div class="route-tools">
+                <label><input type="checkbox" .checked=${this._showRoute} @change=${(event: Event) => { this._showRoute = (event.target as HTMLInputElement).checked; }}> Recorrido</label>
+                <label><input type="checkbox" .checked=${this._showCoverage} @change=${(event: Event) => { this._showCoverage = (event.target as HTMLInputElement).checked; }}> Cobertura estimada</label>
+                <select aria-label="Sesión del recorrido" .value=${this._routeSession} @change=${(event: Event) => { this._routeSession = (event.target as HTMLSelectElement).value; }}>
+                    <option value="latest">Última actividad</option>
+                    <option value="all">Historial acumulado</option>
+                    ${sessions.slice().reverse().map(session => html`<option value=${session.id}>${new Date(session.started_at).toLocaleString()}${session.incomplete ? " · incompleto" : ""}</option>`)}
+                </select>
+                <small role="status">${route?.error === "storage_unavailable" ? "No se pudo guardar el historial." : route?.error ? "Captura interrumpida; puede haber huecos." : route?.capturing ? "Capturando cada 20 s" : "Captura en espera"} · ${timestampLabel(route?.updated_at ?? null)}</small>
+                <small>Cobertura acumulada: franja ilustrativa de 30 cm; no representa paredes ni garantiza limpieza.</small>
+                <small>Azul: limpieza · ámbar: regreso · gris: tramo sin clasificación.</small>
+                ${sessions.some(session => session.incomplete) ? html`<small>Hay recorridos incompletos. Los huecos se mantienen separados.</small>` : nothing}
+                ${this._confirmClearRoute ? html`
+                    <span>¿Borrar todos los recorridos y empezar una reconstrucción nueva?</span>
+                    <button class="text-button" @click=${this._clearRoutes}>Borrar recorridos</button>
+                    <button class="text-button" @click=${() => { this._confirmClearRoute = false; }}>Cancelar</button>
+                ` : html`<button class="text-button" @click=${() => { this._confirmClearRoute = true; }}>Reiniciar reconstrucción</button>`}
+            </div>
+        `;
+    }
+
+    private _clearRoutes = async (): Promise<void> => {
+        if (!this.hass || !this._config) return;
+        try {
+            const result = await this.hass.callWS<{ ok: boolean }>({ type: `${INTEGRATION_DOMAIN}/trajectory/clear`, entity_id: this._config.entity });
+            if (!result.ok) throw new Error("No se pudieron borrar los recorridos.");
+            this._confirmClearRoute = false;
+            this._routeSession = "latest";
+        } catch (error) {
+            this._setMessage(errorMessage(error), "error");
+        }
+    };
+
+    private _renderRoutes(): TemplateResult {
+        const sessions = this._snapshot?.trajectory?.sessions ?? [];
+        const selected = this._routeSession === "all" ? sessions : this._routeSession === "latest" ? sessions.slice(-1) : sessions.filter(session => session.id === this._routeSession);
+        const coverage = this._snapshot?.trajectory?.coverage;
+        const size = coverage?.cell_size ?? 100;
+        const coveragePath = (coverage?.cells ?? []).map(cell => `M${cell[0] * size},${-cell[1] * size}h${size}v${-size}h${-size}z`).join(" ");
+        // Coverage persists separately from the bounded route history.
+        return svg`<g class="route-layer" pointer-events="none">
+            ${this._showCoverage ? svg`<path class="coverage-layer" d=${coveragePath} fill="var(--primary-color, #03a9f4)" opacity="0.12"></path>` : nothing}
+            ${this._showRoute ? selected.map(session => session.segments.map(segment => svg`
+                <polyline points=${segment.points.map(point => `${point[0]},${-point[1]}`).join(" ")} fill="none" stroke=${segment.kind === "return" ? "#e8ad45" : segment.kind === "cleaning" ? "var(--primary-color, #03a9f4)" : "#888"} stroke-width="14" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray=${segment.kind === "cleaning" ? "none" : "35 25"}></polyline>
+            `)) : nothing}
+        </g>`;
+    }
+
+    private _routeBounds(): WorldBounds {
+        const base = computeSceneBounds(this._snapshot?.catalog.areas ?? [], this._snapshot?.pose ?? null, this._canvasExpansion);
+        (this._snapshot?.trajectory?.sessions ?? []).forEach(session => session.segments.forEach(segment => segment.points.forEach(point => {
+            base.minX = Math.min(base.minX, point[0] - 300);
+            base.maxX = Math.max(base.maxX, point[0] + 300);
+            base.minY = Math.min(base.minY, point[1] - 300);
+            base.maxY = Math.max(base.maxY, point[1] + 300);
+        })));
+        const coverage = this._snapshot?.trajectory?.coverage;
+        const size = coverage?.cell_size ?? 100;
+        (coverage?.cells ?? []).forEach(cell => {
+            base.minX = Math.min(base.minX, cell[0] * size - 300);
+            base.maxX = Math.max(base.maxX, (cell[0] + 1) * size + 300);
+            base.minY = Math.min(base.minY, cell[1] * size - 300);
+            base.maxY = Math.max(base.maxY, (cell[1] + 1) * size + 300);
+        });
+        return base;
+    }
+
     private _viewBounds(): WorldBounds {
-        const base = this._homeBounds ?? computeSceneBounds(
-            this._snapshot?.catalog.areas ?? [],
-            this._snapshot?.pose ?? null,
-            this._canvasExpansion,
-        );
+        const base = this._homeBounds ?? this._routeBounds();
         const centerX = (base.minX + base.maxX) / 2 + this._panX;
         const centerY = (base.minY + base.maxY) / 2 + this._panY;
         const halfWidth = (base.maxX - base.minX) / (2 * this._zoom);
@@ -777,11 +850,7 @@ export class LiectrouxZK901MapCard extends LitElement {
     }
 
     private _fitMap = (): void => {
-        this._homeBounds = computeSceneBounds(
-            this._snapshot?.catalog.areas ?? [],
-            this._snapshot?.pose ?? null,
-            this._canvasExpansion,
-        );
+        this._homeBounds = this._routeBounds();
         this._zoom = 1;
         this._panX = 0;
         this._panY = 0;
@@ -1616,6 +1685,9 @@ export class LiectrouxZK901MapCard extends LitElement {
         .robot-center { fill: var(--card-background-color, white); }
         .robot { pointer-events: none; }
         .robot.stale { opacity: .56; }
+        .route-tools { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 0; align-items: center; }
+        .route-tools small { width: 100%; color: var(--secondary-text-color); }
+        .route-tools label { display: inline-flex; align-items: center; gap: 4px; }
         .pose-stale svg.map { filter: saturate(.65); }
         .map-overlay {
             position: absolute;
@@ -1714,7 +1786,7 @@ export class LiectrouxZK901MapCard extends LitElement {
             h2 { font-size: 1.04rem; }
             .battery { padding: 0 8px; }
             .section-heading { align-items: flex-start; }
-            .fit-button { display: none; }
+            .fit-button { font-size: .7rem; padding-inline: 5px; }
             .map-stage { min-height: 275px; }
             .selection-actions { align-items: stretch; flex-direction: column; }
             .selection-actions .button { width: 100%; }

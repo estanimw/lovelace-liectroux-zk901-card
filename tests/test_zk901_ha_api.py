@@ -98,6 +98,7 @@ def test_real_home_assistant_registration_and_schemas(tmp_path) -> None:
                 f"{DOMAIN}/zone_editor/apply",
                 f"{DOMAIN}/card/subscribe",
                 f"{DOMAIN}/card/refresh",
+                f"{DOMAIN}/trajectory/clear",
             }
             service = hass.services.async_services()[DOMAIN]
             assert {"clean_area", "clean_areas"} <= set(service)
@@ -314,6 +315,8 @@ def test_offline_robot_does_not_block_update_platform(monkeypatch, tmp_path) -> 
         class OfflineCoordinator:
             def __init__(self, _hass, client, _entry) -> None:
                 self.client = client
+                from unittest.mock import AsyncMock
+                self.trajectory = SimpleNamespace(start=AsyncMock(), stop=AsyncMock())
 
             def handle_status(self, _status) -> None:
                 pass

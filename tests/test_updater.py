@@ -778,3 +778,11 @@ def test_manager_reads_installed_version_outside_event_loop(monkeypatch, tmp_pat
             await hass.async_stop(force=True)
 
     asyncio.run(run())
+
+
+def test_route_releases_require_capture_module_but_older_releases_remain_valid():
+    _, old_metadata, _, _ = _package("0.3.2")
+    updater._validate_metadata(old_metadata, "0.3.2")
+    _, metadata, _, _ = _package("0.4.0")
+    with pytest.raises(updater.UpdaterError, match="trayectoria"):
+        updater._validate_metadata(metadata, "0.4.0")

@@ -115,3 +115,29 @@ En nivel INFO, `custom_components.liectroux_zk901.client` registra:
 Los detalles se limitan a 4096 caracteres por entrada, se eliminan campos de identidad/credenciales incluso anidados y se ocultan los valores de credenciales conocidos antes de serializar. No se vuelca el sobre de envío completo ni se agregan consultas, reintentos, comandos o lectores de socket.
 
 Para una sesión de diagnóstico, activar nivel INFO para la integración mediante las herramientas de logging de HA (o activar temporalmente su registro de depuración en la UI). Un reinicio puede restablecer el nivel de logging; comprobarlo después de actualizar y antes de la prueba física. Los INFO se consultan en el registro completo del sistema, no solamente en la lista de errores de la UI. Las pruebas automatizadas simulan eventos y ACKs: la causa de una finalización anticipada de zona sigue requiriendo la evidencia del robot.
+
+
+## Captura autónoma de trayectoria (0.4.0)
+
+`trajectory.py` mantiene una tarea por entrada de integración, creada en setup y cancelada al descargar o detener HA. No depende de listeners de entidades ni de suscripciones de la card. Usa el cliente serializado existente: no abre sockets adicionales ni modifica los comandos de limpieza.
+
+- Solicitud confirmada: `21011`, `connectionType=2`, `startPos=cursor`, `mask=0`.
+- Intervalo inicial: 20 s entre inicios de consulta, sin consultas solapadas; cambios de modo pueden disparar una lectura anticipada. El tiempo de respuesta y la cola del cliente pueden demorar el intervalo.
+- Cursor confirmado: `startPos + pointCounts`. Validar tipos, conteos, puntos finitos, total y continuidad antes de agregar. Sin correlación por timestamp para `21011`.
+- `detect_path_change=True` permite observar un nuevo `pathID` aun si el firmware devuelve otro cursor; esa respuesta no se agrega a la trayectoria anterior. La siguiente consulta parte de cero en la trayectoria nueva. No reiniciar desde cero por timeout.
+- Persistencia versionada mediante `homeassistant.helpers.storage.Store`, clave por entrada. Datos fuera de atributos de entidades y Recorder; se publican como campo opcional `trajectory` de la API 1, compatible con cards anteriores.
+- Reconstrucción acumulada independiente del historial: cuadrícula de 100 unidades de protocolo, franja ilustrativa de unas 300 unidades, máximo 30.000 celdas y tres contextos de mapa. Se suman solo segmentos continuos clasificados como limpieza; no se interpolan huecos ni se calculan paredes o métricas de superficie.
+- Retención: 30 actividades / 30.000 puntos globales. Cada actividad contiene segmentos clasificados `cleaning`, `return`, `unknown`; los intervalos que cruzan una transición son `unknown`. La clasificación usa estado observado, no flags inventados del protocolo.
+- No unir segmentos de reinicios, desconexiones, fallos o cambios de contexto. El cursor se conserva aunque los puntos antiguos se descarten por retención.
+- API administrativa `liectroux_zk901/trajectory/clear`: borra el historial y crea una nueva referencia local. Las respuestas pendientes anteriores al borrado se descartan. Durante una actividad se preserva el cursor confirmado y se comienza una nueva referencia visual vacía.
+- Límites: el firmware puede no responder a atrasos grandes; no conocemos el máximo recuperable. `mapId` estable tampoco prueba estabilidad de coordenadas entre sesiones.
+
+### Aceptación física pendiente
+
+1. Actualizar integración y card juntas; reiniciar HA y recargar el navegador.
+2. Con el panel cerrado, ejecutar una limpieza desde la base cuando el operador lo decida. Abrir luego la card y comprobar que ya hay recorrido capturado.
+3. Verificar el avance a intervalos de aproximadamente 20 s, el regreso diferenciado y la conservación del historial tras reiniciar HA.
+4. Confirmar que pausa, continuación y regreso siguen funcionando. Comprobar que dos paneles abiertos no duplican consultas.
+5. Revisar la alineación de zonas y trayectoria antes de confiar en la reconstrucción acumulada. No deducir paredes ni recuperación del mapa del dibujo de trayectoria.
+
+Las pruebas automáticas cubren ausencia de suscriptores, persistencia, cursor, timeouts, cambios de trayectoria/mapa, retención, API, capas y confirmación de borrado. No sustituyen estas comprobaciones físicas.

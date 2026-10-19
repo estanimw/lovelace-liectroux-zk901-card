@@ -51,6 +51,7 @@ def _integration_files(directory: Path) -> dict[str, bytes]:
         "updater.py",
         "vacuum.py",
         "zone_editor.py",
+        "trajectory.py",
     )
     for required in required_files:
         if f"custom_components/{DOMAIN}/{required}" not in files:

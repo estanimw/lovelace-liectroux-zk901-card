@@ -77,6 +77,7 @@ def register_zone_editor_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_apply_area_edit)
     websocket_api.async_register_command(hass, websocket_subscribe_card)
     websocket_api.async_register_command(hass, websocket_refresh_card)
+    websocket_api.async_register_command(hass, websocket_clear_trajectory)
 
 
 def _coordinator_for_entity(
@@ -347,3 +348,16 @@ async def websocket_apply_area_edit(
             "observed_at": coordinator.areas_observed_at,
         },
     )
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/trajectory/clear", vol.Required("entity_id"): cv.entity_id})
+@websocket_api.async_response
+async def websocket_clear_trajectory(hass, connection, msg) -> None:
+    """Explicitly discard stored routes and start a fresh coordinate epoch."""
+    coordinator = _coordinator_for_entity(hass, msg["entity_id"])
+    if coordinator is None:
+        _send(connection, msg, {"ok": False, "error": "not_found"})
+        return
+    await coordinator.trajectory.clear()
+    _send(connection, msg, {"ok": True})
