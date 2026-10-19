@@ -326,14 +326,14 @@ export class LiectrouxZK901MapCard extends CommunityMapCard {
                 : nothing}
             ${c._selectionNeedsReview
                 ? html`<div class="zk-notice" role="alert">
-                      El catálogo cambió. Revisá y vaciá la selección anterior antes de limpiar.<button
+                      Las zonas cambiaron. Volvé a seleccionarlas antes de limpiar.<button
                           @click=${() => this._do(() => c._clearSelection())}>
-                          Vaciar selección y volver a elegir
+                          Vaciar selección
                       </button>
                   </div>`
                 : nothing}
             ${s && !s.catalog.fresh
-                ? html`<div class="zk-status">Recargá el catálogo para confirmar las zonas seleccionadas.</div>`
+                ? html`<div class="zk-status">Actualizá las zonas para confirmar la selección.</div>`
                 : nothing}
             ${outside
                 ? html`<div class="zk-status">
@@ -528,15 +528,11 @@ export class LiectrouxZK901MapCard extends CommunityMapCard {
             ${this._panel === "info"
                 ? html`<p>${statusName(s)}</p>
                       <p>Posición ${timestampLabel(s?.pose?.observed_at ?? null)}</p>
-                      <p>
-                          Catálogo ${s?.catalog.fresh && s?.catalog.available ? "actualizado" : "antiguo o sin lectura"}
-                      </p>
-                      <p>API 1 · Tarjeta ${CARD_VERSION}</p>
-                      <p>Trayectoria por telemetría y cobertura estimada. Sin paredes reconstruidas.</p>
-                      ${c._message ? html`<p role="status">${c._message}</p>` : nothing}<button
-                          @click=${() => this._do(() => c._refreshData())}>
-                          Recargar estado
-                      </button>`
+                      <p>Zonas ${s?.catalog.fresh && s?.catalog.available ? "actualizadas" : "sin actualizar"}</p>
+                      <p>Versión ${CARD_VERSION}</p>
+                      ${c._message && (c.notifyMessage || c._messageKind === "error")
+                          ? html`<p role="status">${c._message}</p>`
+                          : nothing}<button @click=${() => this._do(() => c._refreshData())}>Recargar estado</button>`
                 : nothing}
         </section>`;
     }

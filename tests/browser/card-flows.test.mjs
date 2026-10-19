@@ -119,7 +119,7 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
 
         const initialAreas = await page.evaluate(() => window.__zkBackend.getState().areas);
         await page.evaluate(() => window.__zkBackend.setAreas([]));
-        await page.getByText("El catálogo no tiene zonas guardadas.").waitFor();
+        await page.getByText("No hay zonas guardadas.").waitFor();
         await page.getByRole("button", { name: "Editar", exact: true }).click();
         await page.getByRole("button", { name: "Crear zona" }).click();
         assert.match(await page.locator(".geometry-tools").innerText(), /4 vértices/);
@@ -141,7 +141,7 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
 
         await page.evaluate(() => window.__zkBackend.setCatalogFresh(false));
         assert.equal(await page.getByRole("button", { name: "Limpiar seleccionadas" }).isDisabled(), true);
-        assert.match(await page.getByText("Recargá el catálogo para confirmar", { exact: false }).innerText(), /zonas seleccionadas/);
+        assert.match(await page.getByText("Actualizá las zonas para confirmar", { exact: false }).innerText(), /selección/);
         await page.evaluate(() => window.__zkBackend.setCatalogFresh(true));
 
         await page.evaluate(() => window.__zkBackend.setAvailable(false));
@@ -173,7 +173,7 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
         await page.getByText(/Se perdió la confirmación de volver a la base/i).waitFor();
         assert.equal(await page.evaluate(() => window.__zkCalls.length), callsBeforeUncertainAction + 1);
         await page.getByRole("button", { name: "Recargar estado" }).click();
-        await page.getByText("Estado y catálogo releídos. Revisá la actividad observada antes de iniciar otra operación.").waitFor();
+        await page.getByText("Estado actualizado. Revisá la actividad de la aspiradora antes de reintentar.").waitFor();
         assert.equal(await page.evaluate(() => window.__zkCalls.length), callsBeforeUncertainAction + 1);
 
         await page.getByRole("button", { name: /Cocina, Normal/ }).click();
@@ -206,7 +206,7 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
         assert.match(await page.locator(".geometry-tools").innerText(), /4 vértices/);
         await page.getByRole("button", { name: "Mover derecha" }).click();
         await page.getByRole("button", { name: "Guardar" }).click();
-        await page.getByText("Cambios guardados y verificados contra el catálogo del robot.").waitFor();
+        await page.getByText("Cambios guardados.").waitFor();
         let state = await page.evaluate(() => window.__zkBackend.getState());
         const created = state.areas.find(area => area.tag === "Estudio");
         assert.ok(created);
@@ -226,7 +226,7 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
         await page.waitForFunction(() => window.__zkBackend.applyResponsePending());
         await page.evaluate(() => window.__zkBackend.externalRename(4, "Cambio durante guardado"));
         await page.evaluate(() => window.__zkBackend.releaseApplyResponse());
-        await page.getByText("Cambios guardados y verificados contra el catálogo del robot.").waitFor();
+        await page.getByText("Cambios guardados.").waitFor();
         await page.locator("button.zone-row").filter({ hasText: "Cambio durante guardado" }).waitFor();
         state = await page.evaluate(() => window.__zkBackend.getState());
         assert.equal(state.areas.find(area => area.id === 1).tag, "Cocina editada");
@@ -236,24 +236,25 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
         await page.locator("button.zone-row").filter({ hasText: "Pasillo" }).click();
         await page.locator("input[maxlength='80']").fill("Borrador propio");
         await page.evaluate(() => window.__zkBackend.externalRename(2, "Cambio externo"));
-        await page.getByRole("button", { name: "Descartar borrador y cargar catálogo actualizado" }).waitFor();
+        await page.getByRole("button", { name: "Descartar borrador y actualizar zonas" }).waitFor();
         assert.match(await page.locator(".draft-conflict-summary").innerText(), /Borrador propio/);
         page.on("dialog", dialog => dialog.accept());
-        await page.getByRole("button", { name: "Descartar borrador y cargar catálogo actualizado" }).click();
+        await page.getByRole("button", { name: "Descartar borrador y actualizar zonas" }).click();
         await page.locator("button.zone-row").filter({ hasText: "Cambio externo" }).waitFor();
 
         await page.locator("button.zone-row").filter({ hasText: "Cambio externo" }).click();
         await page.locator("input[maxlength='80']").fill("Borrador ante mapa nuevo");
         await page.evaluate(() => window.__zkBackend.changeMapId(987654321));
-        await page.getByRole("button", { name: "Descartar borrador y cargar catálogo actualizado" }).waitFor();
+        await page.getByRole("button", { name: "Descartar borrador y actualizar zonas" }).waitFor();
         assert.match(await page.locator(".draft-conflict-summary").innerText(), /Borrador ante mapa nuevo/);
-        assert.match(await page.locator(".conflict-catalog").innerText(), /987654321/);
-        await page.getByRole("button", { name: "Descartar borrador y cargar catálogo actualizado" }).click();
+        assert.equal(await page.evaluate(() => window.__card.controller._draftConflict.map_id), 987654321);
+        assert.doesNotMatch(await page.locator(".conflict-catalog").innerText(), /987654321|revisión/);
+        await page.getByRole("button", { name: "Descartar borrador y actualizar zonas" }).click();
 
         await page.locator("button.zone-row").filter({ hasText: "Estudio" }).click();
         await page.getByRole("button", { name: "Eliminar zona…" }).click();
         await page.getByRole("button", { name: "Guardar" }).click();
-        await page.getByText("Cambios guardados y verificados contra el catálogo del robot.").waitFor();
+        await page.getByText("Cambios guardados.").waitFor();
         state = await page.evaluate(() => window.__zkBackend.getState());
         assert.equal(state.areas.some(area => area.id === created.id), false);
         const operations = await page.evaluate(() => window.__zkWsCalls.filter(message => message.type === "liectroux_zk901/zone_editor/apply").map(message => message.operation));
@@ -264,17 +265,17 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
         await page.evaluate(() => window.__zkBackend.failNextApplyAfterWrite());
         const applyCount = await page.evaluate(() => window.__zkWsCalls.filter(message => message.type === "liectroux_zk901/zone_editor/apply").length);
         await page.getByRole("button", { name: "Guardar" }).click();
-        await page.getByText(/Se perdió la respuesta del guardado/).waitFor();
+        await page.locator(".draft-panel .notice").filter({ hasText: "No se pudo confirmar el guardado" }).waitFor();
         assert.equal(await page.evaluate(() => window.__zkWsCalls.filter(message => message.type === "liectroux_zk901/zone_editor/apply").length), applyCount + 1);
-        await page.getByRole("button", { name: "Recargar catálogo" }).click();
-        await page.getByRole("button", { name: "Descartar borrador y cargar catálogo actualizado" }).waitFor();
+        await page.getByRole("button", { name: "Recargar zonas" }).click();
+        await page.getByRole("button", { name: "Descartar borrador y actualizar zonas" }).waitFor();
         assert.match(await page.locator(".conflict-catalog").innerText(), /Zona incierta/);
         assert.equal(await page.evaluate(() => window.__zkWsCalls.filter(message => message.type === "liectroux_zk901/zone_editor/apply").length), applyCount + 1);
-        await page.getByRole("button", { name: "Descartar borrador y cargar catálogo actualizado" }).click();
+        await page.getByRole("button", { name: "Descartar borrador y actualizar zonas" }).click();
         await page.getByRole("button", { name: "Salir", exact: true }).waitFor();
         await page.getByRole("button", { name: "Salir", exact: true }).click();
 
-        await page.getByRole("button", { name: "Vaciar selección y volver a elegir" }).click();
+        await page.locator(".zk-notice").getByRole("button", { name: "Vaciar selección", exact: true }).click();
         let zoneBox = await page.locator(".zk-persisted-room[data-area-id='2'] .room-outline").boundingBox();
         assert.ok(zoneBox);
         await page.touchscreen.tap(zoneBox.x + zoneBox.width / 2, zoneBox.y + zoneBox.height / 2);
@@ -361,7 +362,7 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
             ],
         }));
         await page.getByRole("button", { name: "Capas e historial", exact: true }).click();
-        await page.getByText("Capturando cada 20 s", { exact: false }).waitFor();
+        await page.getByText("Registrando recorrido", { exact: false }).waitFor();
         await page.waitForTimeout(30);
         assert.equal((await routeImage()).lines, 2);
         await page.waitForTimeout(30);
@@ -423,7 +424,7 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
             card.hass = window.hass;
             document.querySelector("main").append(card);
         });
-        await oldApiPage.getByText(/versión de API incompatible/).waitFor();
+        await oldApiPage.getByText(/versiones incompatibles/).waitFor();
         assert.deepEqual(pageErrors, []);
     } catch (error) {
         console.log("Browser errors", pageErrors);

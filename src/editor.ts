@@ -3,11 +3,7 @@ import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent, LovelaceCardEditor, type HomeAssistant } from "custom-card-helpers";
 
-import {
-    CARD_CUSTOM_ELEMENT_NAME,
-    EDITOR_CUSTOM_ELEMENT_NAME,
-    INTEGRATION_DOMAIN,
-} from "./const";
+import { CARD_CUSTOM_ELEMENT_NAME, EDITOR_CUSTOM_ELEMENT_NAME, INTEGRATION_DOMAIN } from "./const";
 import type { HomeAssistantFixed } from "./types/fixes";
 
 interface CardConfig {
@@ -38,25 +34,19 @@ export class LiectrouxZK901MapCardEditor extends LitElement implements LovelaceC
             <div class="editor">
                 <label for="entity">Aspiradora Liectroux ZK901</label>
                 <select id="entity" .value=${entity} @change=${this._entityChanged}>
-                    <option value="" disabled>Seleccioná la entidad de la integración</option>
-                    ${entities.map(entry => html`
-                        <option value=${entry.entity_id}>${entry.name ?? entry.entity_id}</option>
-                    `)}
-                    ${entity && !selectedExists ? html`
-                        <option value=${entity} disabled>${entity} (no es una ZK901 disponible)</option>
-                    ` : ""}
+                    <option value="" disabled>Seleccioná una aspiradora</option>
+                    ${entities.map(
+                        entry => html` <option value=${entry.entity_id}>${entry.name ?? entry.entity_id}</option> `,
+                    )}
+                    ${entity && !selectedExists
+                        ? html` <option value=${entity} disabled>${entity} (no es una ZK901 disponible)</option> `
+                        : ""}
                 </select>
-                <p>La tarjeta lee el mapa, la posición y las zonas de esta integración. No necesita cámara ni calibración.</p>
                 <label for="title">Título (opcional)</label>
-                <input
-                    id="title"
-                    type="text"
-                    .value=${this._config?.title ?? ""}
-                    @input=${this._titleChanged}
-                />
-                ${entities.length === 0 ? html`
-                    <p class="empty">No hay una entidad vacuum de Liectroux ZK901 cargada.</p>
-                ` : ""}
+                <input id="title" type="text" .value=${this._config?.title ?? ""} @input=${this._titleChanged} />
+                ${entities.length === 0
+                    ? html` <p class="empty">No hay aspiradoras Liectroux ZK901 disponibles.</p> `
+                    : ""}
             </div>
         `;
     }

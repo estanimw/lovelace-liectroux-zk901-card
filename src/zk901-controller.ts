@@ -118,15 +118,14 @@ export function errorText(value: unknown): string | null {
 
 function htmlError(result: ApplyAreaEditResponse): string {
     if (result.error === "conflict")
-        return "El catálogo cambió mientras editabas. Tu borrador quedó intacto para que lo revises.";
+        return "Las zonas cambiaron mientras editabas. Revisá los cambios antes de guardar.";
     if (result.error === "uncertain")
-        return "No se pudo confirmar el guardado. Recargá el catálogo antes de decidir si volvés a intentarlo.";
+        return "No se pudo confirmar el guardado. Actualizá las zonas antes de reintentar.";
     if (result.error === "invalid" || result.error === "rejected")
         return result.detail ?? "La integración rechazó el cambio.";
     if (result.error === "not_found") return "La entidad de la integración ya no está disponible.";
     if (result.error === "unavailable") return "La aspiradora no está disponible para guardar las zonas.";
-    if (result.error === "failed")
-        return "No se pudo completar el guardado. El resultado puede ser incierto; recargá el catálogo.";
+    if (result.error === "failed") return "No se pudo completar el guardado. Actualizá las zonas antes de reintentar.";
     return "No se pudo guardar la zona.";
 }
 
@@ -234,7 +233,7 @@ export class ZK901Controller {
                 this._setMessage(
                     message.toLowerCase().includes("unauthorized") || message.toLowerCase().includes("admin")
                         ? "La lectura y edición de zonas requiere permisos de administrador en Home Assistant."
-                        : "No responde la API de la tarjeta ZK901. Actualizá la integración junto con la tarjeta.",
+                        : "No se pudo conectar con la integración ZK901. Comprobá que esté cargada y actualizada.",
                     "error",
                 );
             });
@@ -245,10 +244,7 @@ export class ZK901Controller {
         if (incoming.api_version !== 1 || !incoming.catalog || !Array.isArray(incoming.catalog.areas)) {
             this._apiCompatible = false;
             this._loading = false;
-            this._setMessage(
-                "La integración devolvió una versión de API incompatible. Instalá el paquete conjunto.",
-                "error",
-            );
+            this._setMessage("La tarjeta y la integración usan versiones incompatibles. Actualizá ambas.", "error");
             return;
         }
         this._apiCompatible = true;
@@ -283,15 +279,12 @@ export class ZK901Controller {
                 observed_at: incoming.catalog.observed_at,
             };
             this._snapshot = { ...incoming, catalog: previous.catalog };
-            this._setMessage(
-                "El catálogo cambió en otra vista. Tu borrador quedó intacto; revisá los cambios antes de guardarlo.",
-                "error",
-            );
+            this._setMessage("Las zonas cambiaron mientras editabas. Revisá los cambios antes de guardar.", "error");
             return;
         }
         if (this._draft && changedCatalog && !this._draft.isDirty) {
             this._draft = null;
-            this._setMessage("El catálogo se actualizó antes de que modificaras una zona.", "info");
+            this._setMessage("Las zonas se actualizaron.", "info");
         }
         if (previous && changedCatalog && this._selectedIds.length) this._selectionNeedsReview = true;
         this._snapshot = incoming;
@@ -372,7 +365,7 @@ export class ZK901Controller {
     public _renderZoneList(): TemplateResult {
         const areas = this._snapshot?.catalog.areas ?? [];
         if (!areas.length) {
-            return html`<p class="empty-list">El catálogo no tiene zonas guardadas.</p>`;
+            return html`<p class="empty-list">No hay zonas guardadas.</p>`;
         }
         return html`
             <ul class="zone-list">
@@ -405,8 +398,7 @@ export class ZK901Controller {
                                     >${area.active === "forbid" ? "⊘" : area.active === "depth" ? "◆" : index + 1}</span
                                 >
                                 <span class="zone-row-text"
-                                    ><strong>${zoneName(area)}</strong
-                                    ><small>${zoneType(area.active)} · ID ${String(area.id)}</small></span
+                                    ><strong>${zoneName(area)}</strong><small>${zoneType(area.active)}</small></span
                                 >
                                 <span class="zone-row-action" aria-hidden="true"
                                     >${this._editMode
@@ -434,10 +426,8 @@ export class ZK901Controller {
                 <div class="draft-panel">
                     <div class="notice warning compact" role="alert">
                         ${this._uncertainDraft
-                            ? "Se perdió la respuesta del guardado y llegó un catálogo nuevo. El resultado es incierto; el borrador no se reenviará automáticamente."
-                            : `El catálogo nuevo tiene ${this._draftConflict.areas.length} zonas (revisión ${
-                                  this._draftConflict.revision?.slice(0, 8) ?? "desconocida"
-                              }). Tu borrador usa el mapa ${String(this._draft?.baseMapId)} y no fue reemplazado.`}
+                            ? "No se pudo confirmar el guardado. Revisá las zonas actualizadas antes de reintentar."
+                            : "Las zonas cambiaron mientras editabas. Tu borrador se conservó."}
                     </div>
                     <p class="draft-conflict-summary">
                         Borrador local:
@@ -446,23 +436,18 @@ export class ZK901Controller {
                             : this._draft?.operation === "create"
                             ? `crear “${this._draft.area?.tag || "Zona nueva"}”`
                             : `editar “${this._draft?.area?.tag || "zona"}”`}.
-                        Podés cargar el catálogo nuevo para revisar el estado persistido.
                     </p>
-                    <div class="conflict-catalog" aria-label="Catálogo nuevo recibido">
-                        <strong>Catálogo recibido · mapa ${String(this._draftConflict.map_id ?? "desconocido")}</strong>
+                    <div class="conflict-catalog" aria-label="Zonas actualizadas">
+                        <strong>Zonas actualizadas</strong>
                         ${this._draftConflict.areas.length
                             ? html`
                                   <ul>
                                       ${this._draftConflict.areas.map(
-                                          area => html`
-                                              <li>
-                                                  ${zoneName(area)} · ${zoneType(area.active)} · ID ${String(area.id)}
-                                              </li>
-                                          `,
+                                          area => html` <li>${zoneName(area)} · ${zoneType(area.active)}</li> `,
                                       )}
                                   </ul>
                               `
-                            : html`<p>El catálogo no contiene zonas.</p>`}
+                            : html`<p>No hay zonas guardadas.</p>`}
                     </div>
                     ${this._uncertainDraft
                         ? html`
@@ -470,12 +455,12 @@ export class ZK901Controller {
                                   class="button"
                                   @click=${this._reloadDraftCatalog}
                                   ?disabled=${!!this._pendingAction}>
-                                  Recargar catálogo
+                                  Recargar zonas
                               </button>
                           `
                         : nothing}
                     <button class="button" @click=${this._discardAndLoadConflict}>
-                        Descartar borrador y cargar catálogo actualizado
+                        Descartar borrador y actualizar zonas
                     </button>
                 </div>
             `;
@@ -484,16 +469,16 @@ export class ZK901Controller {
             return html`
                 <div class="draft-panel">
                     <div class="notice warning compact" role="alert">
-                        El guardado no tiene confirmación. No se reenviará automáticamente. Recargá el catálogo y
-                        comprobá si el cambio quedó persistido.
+                        No se pudo confirmar el guardado. Recargá las zonas y revisá si se guardaron los cambios antes
+                        de reintentar.
                     </div>
                     <button class="button" @click=${this._reloadDraftCatalog} ?disabled=${!!this._pendingAction}>
-                        Recargar catálogo
+                        Recargar zonas
                     </button>
                     ${this._catalogReloadedAfterUncertain
                         ? html`
                               <button class="text-button" @click=${this._allowExplicitRetry}>
-                                  Ya revisé el catálogo; habilitar un nuevo intento
+                                  Ya revisé las zonas; volver a intentar
                               </button>
                           `
                         : nothing}
@@ -504,7 +489,6 @@ export class ZK901Controller {
         if (!this._draft) {
             return html`
                 <div class="draft-panel">
-                    <p>Los cambios se guardan solo cuando elegís Guardar. Arrastrar el plano no modifica el robot.</p>
                     <button
                         class="button primary"
                         @click=${this._createZone}
@@ -516,7 +500,7 @@ export class ZK901Controller {
                     <small
                         >${areas.length
                             ? "Elegí una zona de la lista o del plano para modificarla."
-                            : "El plano usa la posición para centrar el dibujo; no representa paredes ni el tamaño de la vivienda."}</small
+                            : "Creá una zona para empezar."}</small
                     >
                 </div>
             `;
@@ -536,11 +520,7 @@ export class ZK901Controller {
                             ? "Eliminar zona"
                             : `Editar ${area?.tag || "zona"}`}</strong
                     >
-                    <span
-                        >${draft.operation === "create"
-                            ? "Borrador"
-                            : `ID ${String(area?.id ?? draft.baseArea?.id)}`}</span
-                    >
+                    <span>Borrador</span>
                 </div>
                 ${!draft.deleted && area
                     ? html`
@@ -609,8 +589,7 @@ export class ZK901Controller {
                               </button>
                           </div>
                           <p class="editor-help">
-                              Arrastrá el polígono para moverlo o un vértice para cambiar su forma. Las flechas del
-                              teclado mueven el elemento enfocado.
+                              Arrastrá la zona o sus vértices. También podés usar las flechas del teclado.
                           </p>
                           ${draft.operation === "update" && !draft.deleted
                               ? html`
@@ -622,9 +601,7 @@ export class ZK901Controller {
                       `
                     : html`<p>La zona se eliminará cuando guardes este cambio.</p>`}
                 ${validation ? html`<p class="validation" role="status">${validation}</p>` : nothing}
-                ${!validCatalog
-                    ? html`<p class="validation">Recargá un catálogo fresco antes de guardar.</p>`
-                    : nothing}
+                ${!validCatalog ? html`<p class="validation">Actualizá las zonas antes de guardar.</p>` : nothing}
                 <div class="draft-buttons">
                     <button
                         class="button primary"
@@ -700,23 +677,19 @@ export class ZK901Controller {
                     >${route?.error === "storage_unavailable"
                         ? "No se pudo guardar el historial."
                         : route?.error
-                        ? "Captura interrumpida; puede haber huecos."
+                        ? "Registro interrumpido."
                         : route?.capturing
-                        ? "Capturando cada 20 s"
-                        : "Captura en espera"}
+                        ? "Registrando recorrido"
+                        : "En espera"}
                     · ${timestampLabel(route?.updated_at ?? null)}</small
                 >
-                <small
-                    >Cobertura acumulada: franja ilustrativa de 30 cm; no representa paredes ni garantiza
-                    limpieza.</small
-                >
-                <small>Azul: limpieza · ámbar: regreso · gris: tramo sin clasificación.</small>
+                <small>Azul: limpieza · ámbar: regreso · gris: otros movimientos.</small>
                 ${sessions.some(session => session.incomplete)
-                    ? html`<small>Hay recorridos incompletos. Los huecos se mantienen separados.</small>`
+                    ? html`<small>Hay recorridos incompletos.</small>`
                     : nothing}
                 ${this._confirmClearRoute
                     ? html`
-                          <span>¿Borrar todos los recorridos y empezar una reconstrucción nueva?</span>
+                          <span>¿Borrar todo el historial de recorridos?</span>
                           <button class="text-button" @click=${this._clearRoutes}>Borrar recorridos</button>
                           <button
                               class="text-button"
@@ -903,14 +876,14 @@ export class ZK901Controller {
                 !["normal", "depth", "forbid"].includes(String(area.active)) ||
                 !validVertices(area.vertexs)
             ) {
-                this._setMessage("Esta zona tiene un ID, tipo o geometría que el editor no puede modificar.", "error");
+                this._setMessage("Esta zona no se puede editar.", "error");
                 return;
             }
             try {
                 const mapId = this._snapshot?.catalog.map_id;
                 const revision = this._snapshot?.catalog.revision;
                 if (mapId === null || mapId === undefined || !revision)
-                    throw new Error("Recargá el catálogo para obtener su revisión actual.");
+                    throw new Error("Actualizá las zonas antes de editar.");
                 this._draft = ZoneDraft.update(mapId, revision, area);
                 this._activeVertex = null;
                 this._setMessage(`Editando ${zoneName(area)}. Los cambios todavía no se enviaron.`, "info");
@@ -920,10 +893,7 @@ export class ZK901Controller {
             return;
         }
         if (this._selectionNeedsReview) {
-            this._setMessage(
-                "Vacía la selección anterior y vuelve a elegir las zonas después del cambio de catálogo.",
-                "error",
-            );
+            this._setMessage("Las zonas cambiaron. Vaciá la selección y volvé a elegirlas.", "error");
             return;
         }
         if (area.active === "forbid") {
@@ -934,7 +904,7 @@ export class ZK901Controller {
             return;
         }
         if (!this._isCleanable(area, catalogAreas)) {
-            this._setMessage("Esta zona no tiene un ID único y compatible para limpiarla.", "error");
+            this._setMessage("Esta zona no se puede seleccionar para limpiar.", "error");
             return;
         }
         this._selectedIds = this._selectedIds.includes(area.id)
@@ -1045,11 +1015,11 @@ export class ZK901Controller {
     public _createZone = (): void => {
         const snapshot = this._snapshot;
         if (!snapshot?.catalog.revision || snapshot.catalog.map_id === null || snapshot.catalog.map_id === undefined) {
-            this._setMessage("Recargá el catálogo antes de crear una zona.", "error");
+            this._setMessage("Actualizá las zonas antes de crear una.", "error");
             return;
         }
         if (!snapshot.catalog.fresh || !snapshot.catalog.available) {
-            this._setMessage("No se puede crear una zona con un catálogo antiguo o sin conexión.", "error");
+            this._setMessage("Conectá la aspiradora y actualizá las zonas antes de crear una.", "error");
             return;
         }
         const vertices = createInitialRectangle(snapshot.catalog.areas, snapshot.pose);
@@ -1107,20 +1077,20 @@ export class ZK901Controller {
     };
 
     public _discardDraft = (): void => {
-        if (this._draft?.isDirty && !window.confirm("Descartar todos los cambios de este borrador?")) return;
+        if (this._draft?.isDirty && !window.confirm("¿Descartar los cambios?")) return;
         this._draft = null;
         this._draftConflict = null;
         this._uncertainDraft = false;
         this._catalogReloadedAfterUncertain = false;
         this._activeVertex = null;
-        this._setMessage("Borrador descartado. Las zonas guardadas no cambiaron.", "info");
+        this._setMessage("Borrador descartado.", "info");
     };
 
     public _discardAndLoadConflict = (): void => {
         const conflict = this._draftConflict;
         const snapshot = this._snapshot;
         if (!conflict || !snapshot) return;
-        if (!window.confirm("Descartar el borrador y cargar el catálogo nuevo?")) return;
+        if (!window.confirm("¿Descartar el borrador y actualizar las zonas?")) return;
         this._snapshot = {
             ...snapshot,
             catalog: {
@@ -1141,7 +1111,7 @@ export class ZK901Controller {
         this._catalogReloadedAfterUncertain = false;
         this._selectionNeedsReview = this._selectedIds.length > 0;
         this._activeVertex = null;
-        this._setMessage("Catálogo nuevo cargado. Revisá la selección de limpieza.", "info");
+        this._setMessage("Zonas actualizadas. Revisá la selección.", "info");
         this._fitMap();
     };
 
@@ -1152,7 +1122,7 @@ export class ZK901Controller {
         const entityId = this._config?.entity;
         if (!draft || !snapshot || !hass || !entityId || !draft.isDirty || draft.validationMessage) return;
         if (!snapshot.catalog.fresh || !snapshot.catalog.available) {
-            this._setMessage("Recargá un catálogo fresco antes de guardar.", "error");
+            this._setMessage("Actualizá las zonas antes de guardar.", "error");
             return;
         }
         this._savingDraft = true;
@@ -1176,10 +1146,7 @@ export class ZK901Controller {
             }
             if (!Array.isArray(result.areas) || !result.revision || result.map_id === undefined) {
                 this._uncertainDraft = true;
-                this._setMessage(
-                    "La integración aceptó el guardado, pero no devolvió el catálogo confirmado. Recargá antes de reintentar.",
-                    "error",
-                );
+                this._setMessage("No se pudo verificar el guardado. Actualizá las zonas antes de reintentar.", "error");
                 return;
             }
             this._snapshot = {
@@ -1204,14 +1171,14 @@ export class ZK901Controller {
             this._uncertainDraft = false;
             this._catalogReloadedAfterUncertain = false;
             this._selectionNeedsReview = this._selectedIds.length > 0;
-            this._setMessage("Cambios guardados y verificados contra el catálogo del robot.", "success", true);
+            this._setMessage("Cambios guardados.", "success", true);
             this._fitMap();
         } catch (error) {
             this._uncertainDraft = true;
             this._setMessage(
                 `Se perdió la respuesta del guardado (${errorMessage(
                     error,
-                )}). El resultado es incierto; recargá el catálogo.`,
+                )}). Actualizá las zonas antes de reintentar.`,
                 "error",
             );
         } finally {
@@ -1228,11 +1195,7 @@ export class ZK901Controller {
         await this._loadFreshCatalog(true);
         if (this._snapshot?.catalog.fresh && this._snapshot.catalog.available) {
             this._catalogReloadedAfterUncertain = true;
-            this._setMessage(
-                "Catálogo recargado. Compará las zonas y elegí si corresponde habilitar otro intento.",
-                "info",
-                true,
-            );
+            this._setMessage("Zonas actualizadas. Revisá los cambios antes de reintentar.", "info", true);
         }
     };
 
@@ -1240,10 +1203,7 @@ export class ZK901Controller {
         if (!this._uncertainDraft || !this._catalogReloadedAfterUncertain) return;
         this._uncertainDraft = false;
         this._catalogReloadedAfterUncertain = false;
-        this._setMessage(
-            "El reintento quedó habilitado por decisión explícita después de releer el catálogo.",
-            "warning",
-        );
+        this._setMessage("Ya podés volver a intentar el guardado.", "warning");
     };
 
     public _loadFreshCatalog = async (forUncertain: boolean): Promise<void> => {
@@ -1256,7 +1216,7 @@ export class ZK901Controller {
                 this._setMessage(
                     result.error === "unavailable"
                         ? "La aspiradora no está disponible."
-                        : "No se pudo leer el catálogo de zonas.",
+                        : "No se pudieron leer las zonas.",
                     "error",
                 );
                 return;
@@ -1291,9 +1251,9 @@ export class ZK901Controller {
                 if (!this._draft) this._fitMap();
             }
             if (forUncertain) this._catalogReloadedAfterUncertain = true;
-            else this._setMessage("Catálogo de zonas leído directamente del robot.", "success");
+            else this._setMessage("Zonas actualizadas.", "success");
         } catch (error) {
-            this._setMessage(`No se pudo recargar el catálogo: ${errorMessage(error)}`, "error");
+            this._setMessage(`No se pudieron actualizar las zonas: ${errorMessage(error)}`, "error");
         } finally {
             this._pendingAction = "";
             this.requestUpdate();
@@ -1310,7 +1270,7 @@ export class ZK901Controller {
                 this._setMessage(
                     result.error === "not_found"
                         ? "La entidad ya no está disponible."
-                        : "No se pudieron recargar el estado y el catálogo.",
+                        : "No se pudo actualizar el estado.",
                     "error",
                 );
                 return;
@@ -1319,12 +1279,12 @@ export class ZK901Controller {
             if (this._uncertainAction) {
                 this._uncertainAction = false;
                 this._setMessage(
-                    "Estado y catálogo releídos. Revisá la actividad observada antes de iniciar otra operación.",
+                    "Estado actualizado. Revisá la actividad de la aspiradora antes de reintentar.",
                     "info",
                     true,
                 );
             } else {
-                this._setMessage("Estado y catálogo recargados.", "success");
+                this._setMessage("Estado actualizado.", "success");
             }
             if (this._uncertainDraft) this._catalogReloadedAfterUncertain = true;
         } catch (error) {
