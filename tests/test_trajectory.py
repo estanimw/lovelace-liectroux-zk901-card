@@ -234,3 +234,14 @@ def test_coverage_is_bounded_independently_of_raw_points(monkeypatch):
     assert sum(len(c["cells"]) for c in history.coverage) <= 20
     assert len(history.coverage) <= 3
     assert len(history.snapshot(4, False)["coverage"]["cells"]) <= 20
+
+
+def test_empty_final_path_does_not_hide_last_recorded_activity():
+    history = route.RouteHistory()
+    history.start(336)
+    history.ingest(chunk(), "cleaning")
+    recorded_id = history.current["id"]
+    history.ingest(chunk(0, [], path=11), "unknown")
+    history.finish()
+    assert len(history.sessions) == 1
+    assert history.sessions[-1]["id"] == recorded_id

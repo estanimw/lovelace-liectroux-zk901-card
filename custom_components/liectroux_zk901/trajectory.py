@@ -59,6 +59,10 @@ class RouteHistory:
     def finish(self) -> None:
         if self.current:
             self.current["ended_at"] = now()
+            if not self.current["segments"]:
+                # Empty firmware tails or failed first reads must not hide the
+                # most recent real route behind an empty "latest activity".
+                self.sessions = [s for s in self.sessions if s["id"] != self.current["id"]]
         self.current = None
 
     def interrupt(self, reason: str) -> None:
