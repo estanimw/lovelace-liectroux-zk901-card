@@ -97,6 +97,26 @@ test("minimum setup, daily actions, multi-zone and persisted CRUD", { timeout: 6
         assert.equal(await invalidGeometryRow.isDisabled(), true);
         await page.getByRole("button", { name: "Salir", exact: true }).click();
 
+        // Routine actions and selection feedback stay quiet; meaningful results remain visible.
+        await page.evaluate(async () => {
+            const c = window.__card.controller;
+            c._setMessage("Selección actualizada", "info");
+            await window.__card.updateComplete;
+        });
+        assert.equal(await cardElement.locator(".toast.show").count(), 0);
+        await page.evaluate(async () => {
+            await window.__card.controller._performAction("pausar", async () => {});
+            await window.__card.updateComplete;
+        });
+        assert.equal(await cardElement.locator(".toast.show").count(), 0);
+        assert.equal(await page.evaluate(() => window.__card.controller._message), "");
+        await page.evaluate(async () => {
+            await window.__card.controller._performAction("pausar", async () => { throw new Error("rechazado"); });
+            await window.__card.updateComplete;
+        });
+        await cardElement.getByText("No se pudo ejecutar pausar: rechazado", { exact: true }).waitFor();
+        await page.evaluate(() => window.__card.controller._message = "");
+
         const initialAreas = await page.evaluate(() => window.__zkBackend.getState().areas);
         await page.evaluate(() => window.__zkBackend.setAreas([]));
         await page.getByText("El catálogo no tiene zonas guardadas.").waitFor();

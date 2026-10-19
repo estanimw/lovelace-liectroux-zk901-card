@@ -142,6 +142,7 @@ export class ZK901Controller {
     public _snapshot?: CardSnapshot;
     public _message = "";
     public messageSequence = 0;
+    public notifyMessage = false;
     public handleRadius = 20;
     public _messageKind: "info" | "error" | "success" = "info";
     public _loading = true;
@@ -1010,10 +1011,6 @@ export class ZK901Controller {
         this._message = "";
         try {
             await action();
-            this._setMessage(
-                `Home Assistant aceptó la solicitud de ${label}. El estado observado se actualizará por separado.`,
-                "success",
-            );
         } catch (error) {
             const message = errorMessage(error);
             this._uncertainAction = /incierto|connection|conexión|timeout|timed out|lost|desconect/i.test(message);
@@ -1207,7 +1204,7 @@ export class ZK901Controller {
             this._uncertainDraft = false;
             this._catalogReloadedAfterUncertain = false;
             this._selectionNeedsReview = this._selectedIds.length > 0;
-            this._setMessage("Cambios guardados y verificados contra el catálogo del robot.", "success");
+            this._setMessage("Cambios guardados y verificados contra el catálogo del robot.", "success", true);
             this._fitMap();
         } catch (error) {
             this._uncertainDraft = true;
@@ -1234,6 +1231,7 @@ export class ZK901Controller {
             this._setMessage(
                 "Catálogo recargado. Compará las zonas y elegí si corresponde habilitar otro intento.",
                 "info",
+                true,
             );
         }
     };
@@ -1323,6 +1321,7 @@ export class ZK901Controller {
                 this._setMessage(
                     "Estado y catálogo releídos. Revisá la actividad observada antes de iniciar otra operación.",
                     "info",
+                    true,
                 );
             } else {
                 this._setMessage("Estado y catálogo recargados.", "success");
@@ -1336,7 +1335,8 @@ export class ZK901Controller {
         }
     };
 
-    public _setMessage(message: string, kind: "info" | "error" | "success" | "warning"): void {
+    public _setMessage(message: string, kind: "info" | "error" | "success" | "warning", notify = false): void {
+        this.notifyMessage = notify || kind === "warning";
         this._message = message;
         this.messageSequence += 1;
         this._messageKind = kind === "warning" ? "info" : kind;

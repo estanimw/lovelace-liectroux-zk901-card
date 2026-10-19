@@ -129,15 +129,15 @@ export class LiectrouxZK901MapCard extends CommunityMapCard {
         this.controller._ensureSubscription();
         super.updated(changed);
         const c = this.controller;
-        if (c.messageSequence !== this._toastSequence && c._message && c._messageKind !== "error") {
+        if (c.messageSequence !== this._toastSequence && c.notifyMessage && c._message && c._messageKind !== "error") {
             this._toastSequence = c.messageSequence;
             ToastRenderer.showToast(
                 this.shadowRoot,
                 value => value,
                 "map-card",
                 c._message,
-                "mdi:check",
-                true,
+                c._messageKind === "success" ? "mdi:check" : "mdi:alert",
+                c._messageKind === "success",
                 "",
                 3000,
             );
@@ -497,14 +497,18 @@ export class LiectrouxZK901MapCard extends CommunityMapCard {
         return html`<section
             class="zk-secondary"
             aria-label=${this._panel === "zones"
-                ? (c._editMode ? "Editor de zonas" : "Zonas guardadas")
+                ? c._editMode
+                    ? "Editor de zonas"
+                    : "Zonas guardadas"
                 : this._panel === "layers"
                 ? "Capas e historial"
                 : "Información"}>
             <div class="zk-panel-heading">
                 <h3>
                     ${this._panel === "zones"
-                        ? (c._editMode ? "Editar zonas" : "Zonas guardadas")
+                        ? c._editMode
+                            ? "Editar zonas"
+                            : "Zonas guardadas"
                         : this._panel === "layers"
                         ? "Capas e historial"
                         : "Información"}
