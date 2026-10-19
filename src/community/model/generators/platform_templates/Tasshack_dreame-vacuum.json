@@ -1,0 +1,331 @@
+{
+    "map_modes": {
+        "default_templates": [
+            "vacuum_clean_zone",
+            "vacuum_clean_point",
+            "vacuum_goto"
+        ],
+        "templates": {
+            "vacuum_clean_segment": {
+                "name": "map_mode.vacuum_clean_segment",
+                "icon": "mdi:floor-plan",
+                "selection_type": "ROOM",
+                "repeats_type": "EXTERNAL",
+                "max_repeats": 3,
+                "max_selections": 60,
+                "service_call_schema": {
+                    "service": "dreame_vacuum.vacuum_clean_segment",
+                    "service_data": {
+                        "segments": "[[selection]]",
+                        "repeats": "[[repeats]]",
+                        "entity_id": "[[entity_id]]"
+                    }
+                }
+            },
+            "vacuum_clean_zone": {
+                "name": "map_mode.vacuum_clean_zone",
+                "icon": "mdi:select-drag",
+                "selection_type": "MANUAL_RECTANGLE",
+                "coordinates_rounding": true,
+                "coordinates_to_meters_divider": 1000,
+                "max_selections": 20,
+                "repeats_type": "EXTERNAL",
+                "max_repeats": 3,
+                "service_call_schema": {
+                    "service": "dreame_vacuum.vacuum_clean_zone",
+                    "service_data": {
+                        "zone": "[[selection]]",
+                        "repeats": "[[repeats]]",
+                        "entity_id": "[[entity_id]]"
+                    }
+                }
+            },
+            "vacuum_clean_zone_predefined": {
+                "name": "map_mode.vacuum_clean_zone_predefined",
+                "icon": "mdi:vector-selection",
+                "selection_type": "PREDEFINED_RECTANGLE",
+                "max_selections": 20,
+                "coordinates_rounding": true,
+                "coordinates_to_meters_divider": 1000,
+                "repeats_type": "EXTERNAL",
+                "max_repeats": 3,
+                "service_call_schema": {
+                    "service": "dreame_vacuum.vacuum_clean_zone",
+                    "service_data": {
+                        "zone": "[[selection]]",
+                        "repeats": "[[repeats]]",
+                        "entity_id": "[[entity_id]]"
+                    }
+                }
+            },
+            "vacuum_clean_point": {
+                "name": "map_mode.vacuum_clean_point",
+                "icon": "mdi:map-marker-plus",
+                "selection_type": "MANUAL_POINT",
+                "coordinates_rounding": true,
+                "coordinates_to_meters_divider": 1000,
+                "repeats_type": "EXTERNAL",
+                "max_repeats": 3,
+                "service_call_schema": {
+                    "service": "dreame_vacuum.vacuum_clean_spot",
+                    "service_data": {
+                        "points": "[[selection]]",
+                        "repeats": "[[repeats]]",
+                        "entity_id": "[[entity_id]]"
+                    }
+                }
+            },
+            "vacuum_clean_point_predefined": {
+                "name": "map_mode.vacuum_clean_point_predefined",
+                "icon": "mdi:map-marker",
+                "selection_type": "PREDEFINED_POINT",
+                "coordinates_rounding": true,
+                "coordinates_to_meters_divider": 1000,
+                "repeats_type": "EXTERNAL",
+                "max_selections": 20,
+                "max_repeats": 3,
+                "service_call_schema": {
+                    "service": "dreame_vacuum.vacuum_clean_spot",
+                    "service_data": {
+                        "points": "[[selection]]",
+                        "repeats": "[[repeats]]",
+                        "entity_id": "[[entity_id]]"
+                    }
+                }
+            },
+            "vacuum_goto": {
+                "name": "map_mode.vacuum_goto",
+                "icon": "mdi:map-marker-radius",
+                "selection_type": "MANUAL_POINT",
+                "coordinates_rounding": true,
+                "coordinates_to_meters_divider": 1000,
+                "repeats_type": "NONE",
+                "max_repeats": 0,
+                "max_selections": 1,
+                "service_call_schema": {
+                    "service": "dreame_vacuum.vacuum_goto",
+                    "service_data": {
+                        "x": "[[point_x]]",
+                        "y": "[[point_y]]",
+                        "entity_id": "[[entity_id]]"
+                    }
+                }
+            },
+            "vacuum_goto_predefined": {
+                "name": "map_mode.vacuum_goto_predefined",
+                "icon": "mdi:map-marker-multiple",
+                "selection_type": "PREDEFINED_POINT",
+                "coordinates_rounding": true,
+                "coordinates_to_meters_divider": 1000,
+                "repeats_type": "NONE",
+                "max_repeats": 0,
+                "max_selections": 1,
+                "service_call_schema": {
+                    "service": "dreame_vacuum.vacuum_goto",
+                    "service_data": {
+                        "x": "[[point_x]]",
+                        "y": "[[point_y]]",
+                        "entity_id": "[[entity_id]]"
+                    }
+                }
+            },
+            "vacuum_follow_path": {
+                "name": "map_mode.vacuum_follow_path",
+                "icon": "mdi:map-marker-path",
+                "selection_type": "MANUAL_PATH",
+                "coordinates_rounding": true,
+                "coordinates_to_meters_divider": 1000,
+                "repeats_type": "NONE",
+                "max_repeats": 0,
+                "max_selections": 20,
+                "service_call_schema": {
+                    "service": "dreame_vacuum.vacuum_follow_path",
+                    "service_data": {
+                        "points": "[[selection]]",
+                        "entity_id": "[[entity_id]]"
+                    }
+                }
+            }
+        }
+    },
+    "tiles": {
+        "from_attributes": [
+            {
+                "tile_id": "water_volume",
+                "attribute": "water_volume",
+                "label": "tile.water_volume.label",
+                "icon": "mdi:water"
+            },
+            {
+                "tile_id": "mop_pad_humidity",
+                "attribute": "mop_pad_humidity",
+                "label": "tile.mop_pad_humidity.label",
+                "icon": "mdi:water-percent"
+            },
+            {
+                "tile_id": "cleaned_area",
+                "attribute": "cleaned_area",
+                "label": "tile.cleaned_area.label",
+                "icon": "mdi:ruler-square",
+                "unit": "unit.meter_squared_shortcut"
+            },
+            {
+                "tile_id": "cleaning_time",
+                "attribute": "cleaning_time",
+                "label": "tile.cleaning_time.label",
+                "icon": "mdi:timer-sand",
+                "unit": "unit.minute_shortcut"
+            },
+            {
+                "tile_id": "cleaning_count",
+                "attribute": "cleaning_count",
+                "label": "tile.cleaning_count.label",
+                "icon": "mdi:counter",
+                "unit": "x"
+            },
+            {
+                "tile_id": "total_cleaned_area",
+                "attribute": "total_cleaned_area",
+                "label": "tile.total_cleaned_area.label",
+                "icon": "mdi:set-square",
+                "unit": "unit.meter_squared_shortcut"
+            },
+            {
+                "tile_id": "cleaning_mode",
+                "attribute": "cleaning_mode",
+                "label": "tile.cleaning_mode.label",
+                "icon": "mdi:vacuum",
+                "translation_keys": [
+                    "sweeping",
+                    "mopping",
+                    "sweeping and mopping",
+                    "mopping after sweeping"
+                ]
+            },
+            {
+                "tile_id": "tight_mopping",
+                "attribute": "tight_mopping",
+                "label": "tile.tight_mopping.label",
+                "icon": "mdi:heating-coil",
+                "translation_keys": [
+                    "true",
+                    "false"
+                ]
+            },
+            {
+                "tile_id": "wetness_level",
+                "attribute": "wetness_level",
+                "label": "tile.wetness_level.label",
+                "icon": "mdi:water-opacity"
+            },
+            {
+                "tile_id": "mop_wash_level",
+                "attribute": "mop_wash_level",
+                "label": "tile.mop_wash_level.label",
+                "icon": "mdi:water-opacity",
+                "translation_keys": [
+                    "deep",
+                    "daily",
+                    "water saving"
+                ]
+            },
+            {
+                "tile_id": "auto_empty_mode",
+                "attribute": "auto_empty_mode",
+                "label": "tile.auto_empty_mode.label",
+                "icon": "mdi:delete-empty-outline",
+                "translation_keys": [
+                    "off",
+                    "standard",
+                    "high frequency",
+                    "low frequency"
+                ]
+            },
+            {
+                "tile_id": "cleaning_route",
+                "attribute": "cleaning_route",
+                "label": "tile.cleaning_route.label",
+                "icon": "mdi:routes",
+                "translation_keys": [
+                    "quick",
+                    "standard"
+                ]
+            },
+            {
+                "tile_id": "cleangenius",
+                "attribute": "cleangenius",
+                "label": "tile.cleangenius.label",
+                "icon": "mdi:auto-mode",
+                "translation_keys": [
+                    "off",
+                    "routine cleaning",
+                    "deep cleaning"
+                ]
+            }
+        ]
+    },
+    "icons": [
+        {
+            "type": "menu",
+            "menu_id": "water_volume",
+            "icon_id": "water_volume",
+            "unique_id_regex": "_water_volume",
+            "available_values_attribute": "options",
+            "icon": "mdi:water-off",
+            "icon_mapping": {
+                "low": "mdi:water-minus",
+                "medium": "mdi:water",
+                "high": "mdi:water-plus"
+            },
+            "tap_action": {
+                "action": "call-service",
+                "service": "select.select_option",
+                "service_data": {
+                    "option": "[[value]]",
+                    "entity_id": "[[entity_id]]"
+                }
+            }
+        },
+        {
+            "type": "menu",
+            "menu_id": "mop_pad_humidity",
+            "icon_id": "mop_pad_humidity",
+            "unique_id_regex": "_mop_pad_humidity",
+            "available_values_attribute": "options",
+            "icon": "mdi:water-off",
+            "icon_mapping": {
+                "slightly_dry": "mdi:water-minus",
+                "moist": "mdi:water",
+                "wet": "mdi:water-plus"
+            },
+            "tap_action": {
+                "action": "call-service",
+                "service": "select.select_option",
+                "service_data": {
+                    "option": "[[value]]",
+                    "entity_id": "[[entity_id]]"
+                }
+            }
+        },
+        {
+            "type": "menu",
+            "menu_id": "cleaning_mode",
+            "icon_id": "cleaning_mode",
+            "unique_id_regex": "cleaning_mode",
+            "available_values_attribute": "options",
+            "icon": "mdi:hydro-power",
+            "icon_mapping": {
+                "sweeping": "mdi:broom",
+                "mopping": "mdi:cup-water"
+            },
+            "tap_action": {
+                "action": "call-service",
+                "service": "select.select_option",
+                "service_data": {
+                    "option": "[[value]]",
+                    "entity_id": "[[entity_id]]"
+                }
+            }
+        }
+    ]
+}

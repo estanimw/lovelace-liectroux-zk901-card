@@ -1,5 +1,7 @@
 # Plan de implementación — tarjeta ZK901 completa
 
+Siguiente iteración propuesta: [recuperación del frontend comunitario](UI_REBASE_PLAN.md). Ese plan sustituye las decisiones de composición visual de este documento y conserva el backend de 0.4.0.
+
 Fecha: 2026-10-18. Base del fork: `5b3dc1b`, rama `master`.
 
 Ampliación 0.4.0 (2026-10-19): se añade captura autónoma e historial de trayectoria, fuera del alcance original sin recorrido. Implementación y límites en [DEVELOPMENT.md](DEVELOPMENT.md#captura-autónoma-de-trayectoria-040). La aceptación física de esta ampliación sigue pendiente.

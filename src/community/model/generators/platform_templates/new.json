@@ -1,0 +1,19 @@
+{
+    "map_modes": {
+        "default_templates": [
+            "template_1",
+            "template_2"
+        ],
+        "templates": {
+            "template_1": {},
+            "template_2": {},
+            "template_3": {}
+        }
+    },
+    "tiles": {
+        "from_attributes": [],
+        "from_sensors": []
+    },
+    "icons": [
+    ]
+}

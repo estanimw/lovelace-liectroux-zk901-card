@@ -1,0 +1,315 @@
+{
+    "common": {
+        "version": "Έκδοση",
+        "invalid_configuration": "Μη αποδεκτές ρυθμίσεις {0}",
+        "description": "Μία κάρτα που σας επιτρέπει να ελέγξετε την σκούπα σας",
+        "old_configuration": "Ανιχνεύθυκαν παλιές ρυθμίσεις. Προσαρμόστε τις ρυθμίσεις σας στο πιο πρόσφατο μοντέλο ή δημιουργήστε μια νέα κάρτα από την αρχή.",
+        "old_configuration_migration_link": "Οδηγός μετατροπής παλιών ρυθμίσεων"
+    },
+    "map_mode": {
+        "invalid": "Μη αποδεκτό πρότυπο!",
+        "vacuum_goto": "Πήγαινε Εδώ",
+        "vacuum_goto_predefined": "Σημεία",
+        "vacuum_clean_segment": "Δωμάτια",
+        "vacuum_clean_point": "Σκούπισμα σε σημείο",
+        "vacuum_clean_point_predefined": "Σημεία",
+        "vacuum_clean_zone": "Σκούπισμα σε ζώνη",
+        "vacuum_clean_zone_predefined": "Λίστα ζωνών καθαρισμού",
+        "vacuum_follow_path": "Διαδρομή",
+        "setup_zone": "Συντεταγμένες ζώνης",
+        "setup_point": "Συντεταγμένες σημείου",
+        "setup_outline": "Συντεταγμένες περιμέτρου"
+    },
+    "validation": {
+        "preset": {
+            "entity": {
+                "missing": "Λείπει η ιδιότητα: entity"
+            },
+            "preset_name": {
+                "missing": "Λείπει η ιδιότητα: preset_name"
+            },
+            "platform": {
+                "invalid": "Μη αποδεκτή πλατφόρμα σκούπας: {0}"
+            },
+            "map_source": {
+                "missing": "Λείπει η ιδιότητα: map_source",
+                "none_provided": "Δεν ρυθμίστηκε ούτε κάμερα ούτε εικόνα",
+                "ambiguous": "Επιτρέπεται μόνο μία πηγή χάρτη"
+            },
+            "calibration_source": {
+                "missing": "Λείπει η ιδιότητα: calibration_source",
+                "ambiguous": "Επιτρέπεται μόνο μία πηγή βαθμονόμησης",
+                "none_provided": "Δεν ρυθμίστηκε πηγή βαθμονόμησης",
+                "calibration_points": {
+                    "invalid_number": "Απαιτούνται ακριβώς 3 ή 4 σημεία βαθμονόμησης",
+                    "missing_map": "Κάθε σημείο βαθμονόμησης πρέπει να περιέχει συντεταγμένες του χάρτη",
+                    "missing_vacuum": "Κάθε σημείο βαθμονόμησης πρέπει να περιέχει συντεταγμένες της σκούπας",
+                    "missing_coordinate": "Τα σημεία βαθμονόμησης του χάρτη και της σκούπας πρέπει να περιέχουν συντεταγμένες x και y"
+                }
+            },
+            "icons": {
+                "invalid": "Λάθος στις ρυθμίσεις: icons",
+                "icon": {
+                    "missing": "Κάθε εγγραφή icon πρέπει να περιέχει μια ιδιότητα icon"
+                }
+            },
+            "tiles": {
+                "invalid": "Λάθος στις ρυθμίσεις: tiles",
+                "entity": {
+                    "missing_outdated_translation": "Κάθε εγγραφή tile πρέπει να περιέχει entity"
+                },
+                "label": {
+                    "missing": "Κάθε εγγραφή tile πρέπει να περιέχει label"
+                }
+            },
+            "map_modes": {
+                "invalid": "Λάθος στις ρυθμίσεις: map_modes",
+                "icon": {
+                    "missing": "Λείπει το εικονίδιο του τρόπου λειτουργίας χάρτη"
+                },
+                "name": {
+                    "missing": "Λείπει το όνομα του τρόπου λειτουργίας χάρτη"
+                },
+                "template": {
+                    "invalid": "Μη αποδεκτό πρότυπο: {0}"
+                },
+                "predefined_selections": {
+                    "not_applicable": "Η λειτουργία {0} δεν υποστηρίζει προκαθορισμένες επιλογές",
+                    "zones": {
+                        "missing": "Λείπει η ρύθμιση ζωνών καθαρισμού",
+                        "invalid_parameters_number": "Κάθε ζώνη καθαρισμού πρέπει να έχει 4 παραμέτρους"
+                    },
+                    "points": {
+                        "position": {
+                            "missing": "Λείπει η ρύθμιση σημείων",
+                            "invalid_parameters_number": "Each point must have 2 parameters"
+                        }
+                    },
+                    "rooms": {
+                        "id": {
+                            "missing": "Λείπει το αναγνωριστικό του δωματίου",
+                            "invalid_format": "Λάθος αναγνωριστικό δωματίου: {0}"
+                        },
+                        "outline": {
+                            "invalid_parameters_number": "Κάθε σημείο του περιγράμματος του δωματίου πρέπει να έχει 2 παραμέτρους"
+                        }
+                    },
+                    "label": {
+                        "x": {
+                            "missing": "Η ταμπέλα πρέπει να έχει ιδιότητα x"
+                        },
+                        "y": {
+                            "missing": "Η ταμπέλα πρέπει να έχει ιδιότητα y"
+                        },
+                        "text": {
+                            "missing": "Η ταμπέλα πρέπει να έχει ιδιότητα κειμένου"
+                        }
+                    },
+                    "icon": {
+                        "x": {
+                            "missing": "Το εικονίδιο πρέπει να έχει ιδιότητα x"
+                        },
+                        "y": {
+                            "missing": "Το εικονίδιο πρέπει να έχει ιδιότητα y"
+                        },
+                        "name": {
+                            "missing": "Το εικονίδιο πρέπει να έχει ιδιότητα ονόματος"
+                        }
+                    }
+                },
+                "service_call_schema": {
+                    "missing": "Λείπει το μοντέλο κλήσης υπηρεσίας",
+                    "service": {
+                        "missing": "Το μοντέλο κλήσης υπηρεσίας πρέπει να εμπεριέχει υπηρεσία",
+                        "invalid": "Μη έγκυρη υπηρεσία: {0}"
+                    }
+                }
+            }
+        },
+        "invalid_entities": "Λάθος οντότητες:",
+        "invalid_calibration": "Λάθος βαθμονόμηση, παρακαλώ ελέγξτε τις ρυθμίσεις σας"
+    },
+    "tile": {
+        "auto_empty_mode": {
+            "label": "Αυτόματο άδειασμα",
+            "value": {
+                "off": "Ανενεργό",
+                "standard": "Κανονικό",
+                "high_frequency": "Υψηλή συχνότητα",
+                "low_frequency": "Χαμηλή συχνότητα"
+            }
+        },
+        "battery_level": {
+            "label": "Μπαταρία"
+        },
+        "bin_full": {
+            "label": "Κάδος γεμάτος",
+            "value": {
+                "true": "Ναι",
+                "false": "Όχι"
+            }
+        },
+        "bin_present": {
+            "label": "Κάδος παρών",
+            "value": {
+                "true": "Ναι",
+                "false": "Όχι"
+            }
+        },
+        "cleaned_area": {
+            "label": "Έκταση που καθαρίστηκε"
+        },
+        "cleangenius": {
+            "label": "Clean Genius",
+            "value": {
+                "off": "Ανενεργό",
+                "routine_cleaning": "Καθαρισμός ρουτίνας",
+                "deep_cleaning": "Βαθύς καθαρισμός"
+            }
+        },
+        "cleaning_count": {
+            "label": "Αριθμός σκουπισμάτων"
+        },
+        "cleaning_mode": {
+            "label": "Τύπος καθαρισμού",
+            "value": {
+                "sweeping": "Σκούπισμα",
+                "mopping": "Σφουγγάρισμα",
+                "sweeping_and_mopping": "Σκούπισμα και σφουγγάρισμα",
+                "mopping_after_sweeping": "Σφουγγάρισμα μετά το σκούπισμα"
+            }
+        },
+        "cleaning_route": {
+            "label": "Διαδρομή καθαρισμού",
+            "value": {
+                "quick": "Γρήγορη",
+                "standard": "Κανονική"
+            }
+        },
+        "cleaning_time": {
+            "label": "Χρόνος καθαρισμού"
+        },
+        "fan_speed": {
+            "label": "Ταχύτητα ανεμιστήρα",
+            "value": {
+                "silent": "Αθόρυβο",
+                "standard": "Τυπικό",
+                "medium": "Μέτριο",
+                "turbo": "Τούρμπο",
+                "auto": "Αυτόματο",
+                "gentle": "Ήπιο",
+                "strong": "Ισχυρό"
+            }
+        },
+        "filter_left": {
+            "label": "Συντήρηση φίλτρου"
+        },
+        "sensor_dirty_left": {
+            "label": "Συντήρηση αισθητήρων"
+        },
+        "side_brush_left": {
+            "label": "Συντήρηση πλαϊνής βούρτσας"
+        },
+        "status": {
+            "label": "Κατάσταση",
+            "value": {
+                "starting": "Γίνεται εκκίνηση",
+                "charger_disconnected": "Αποσυνδέθηκε από τη φόρτιση",
+                "idle": "Σε αδράνεια",
+                "remote_control_active": "Χειροκίνητος έλεγχος ενεργός",
+                "cleaning": "Γίνεται καθαρισμός",
+                "returning_home": "Επιστροφή στη βάση",
+                "manual_mode": "Χειροκίνητη λειτουργία",
+                "charging": "Σε φόρτιση",
+                "charging_problem": "Πρόβλημα φόρτισης",
+                "paused": "Σε παύση",
+                "spot_cleaning": "Καθαρισμός σημείου",
+                "error": "Σφάλμα",
+                "sleeping": "Σε αδράνεια",
+                "shutting_down": "Γίνεται τερματισμός",
+                "updating": "Γίνεται αναβάθμιση",
+                "docking": "Σύνδεση στη βάση",
+                "going_to_target": "Πορεία προς προορισμό",
+                "zoned_cleaning": "Καθαρισμός ζώνης",
+                "segment_cleaning": "Καθαρισμός τμήματος",
+                "emptying_the_bin": "Άδειασμα κάδου",
+                "charging_complete": "Φόρτιση πλήρης",
+                "device_offline": "Συσκευή εκτός δικτύου"
+            }
+        },
+        "main_brush_left": {
+            "label": "Συντήρηση κύριας βούρτσας"
+        },
+        "mop_left": {
+            "label": "Συντήρηση σφουγγαρίστρας"
+        },
+        "mop_pad_humidity": {
+            "label": "Υγρασία σφουγγαρίστρας",
+            "value": {
+                "slightly_dry": "Ήπια",
+                "moist": "Μεσαία",
+                "wet": "Υγρή"
+            }
+        },
+        "tight_mopping": {
+            "label": "Πυκνό σφουγγάρισμα"
+        },
+        "total_cleaning_time": {
+            "label": "Συνολικός χρόνος καθαρισμού"
+        },
+        "total_cleaned_area": {
+            "label": "Συνολική έκταση που καθαρίστηκε"
+        },
+        "water_volume": {
+            "label": "Ποσότητα νερού"
+        },
+        "wetness_level": {
+            "label": "Επίπεδο υγρασίας"
+        }
+    },
+    "icon": {
+        "vacuum_start": "Έναρξη",
+        "vacuum_pause": "Παύση",
+        "vacuum_stop": "Διακοπή",
+        "vacuum_return_to_base": "Επιστροφή στη βάση",
+        "vacuum_clean_spot": "Καθαρισμός σημείου",
+        "vacuum_locate": "Εντοπισμός",
+        "vacuum_set_fan_speed": "Αλλαγή ταχύτητας ανεμιστήρα"
+    },
+    "unit": {
+        "hour_shortcut": "ω",
+        "meter_shortcut": "μ",
+        "meter_squared_shortcut": "τ.μ.",
+        "minute_shortcut": "λεπ"
+    },
+    "popups": {
+        "success": "Επιτυχία!",
+        "no_selection": "Δεν δόθηκε επιλογή",
+        "failed": "Αποτυχία κλήσης υπηρεσίας"
+    },
+    "editor": {
+        "description": {
+            "text": "Αυτό η οπτική διεπαφή επεξεργασίας υποστηρίζει μόνο βασικές ρυθμίσεις. Για πιο εξελιγμένες ρυθμίσεις χρησιμοποιήστε τη μέθοδο επεξεργασίας αρχείου YAML."
+        },
+        "label": {
+            "name": "Τίτλος (προεραιτικό)",
+            "entity": "Οντότητα σκούπας (απαραίτητο)",
+            "camera": "Οντότητα κάμερας (απαραίτητο)",
+            "vacuum_platform": "Πλατφόρμα σκούπας (απαραίτητο)",
+            "map_locked": "Κλείδωμα χάρτη (προεραιτικό)",
+            "two_finger_pan": "Μετακίνηση με δύο δάχτυλα (προεραιτικό)",
+            "platforms_documentation": "Τεκμηρίωση της επιλεγμένης πλατφόρμας ({0})",
+            "selection": "Επιλογή:",
+            "copy": "Αντιγραφή",
+            "copied": "Αντιγράφηκε!",
+            "set_static_config": "Δημιουργία στατικών ρυθμίσεων",
+            "config_set": "Ρύθμιση παραμέτρων!\nΑνοίξτε τον επεξεργαστή παραμέτρων για να τον προσαρμόσετε.",
+            "config_set_failed": "Απέτυχε η ενημέρωση των ρυθμίσεων.",
+            "generate_rooms_config": "Δημιουργία παραμέτρων δωματίων",
+            "copy_service_call": "Αντιγραφή κλήσης υπηρεσίας"
+        },
+        "alerts": {
+            "set_static_config": "Θα πρέπει να χρησιμοποιήσεις αυτή τη λειτουργία μόνο αν θέλεις να προσαρμόσεις χειροκίνητα μια αυτόματα δημιουργημένη ρύθμιση.\nΣυνέχεια;"
+        }
+    }
+}

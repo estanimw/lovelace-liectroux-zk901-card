@@ -4,8 +4,10 @@ Tarjeta Lovelace y custom integration de Home Assistant para controlar localment
 
 ## Funciones
 
+- Frontend basado en el componente comunitario original: mapa protagonista, navegación táctil, controles con iconos, menús y tiles de estado.
+
 - Captura autónoma del recorrido cada 20 segundos durante actividad, con historial persistente y cobertura estimada; funciona con el panel cerrado.
-- Plano vectorial de zonas persistidas y posición/orientación reciente del robot; no necesita cámara, imagen ni calibración.
+- Plano vectorial de zonas persistidas y posición/orientación reciente del robot; no necesita cámara, una imagen externa ni calibración manual.
 - Inicio/continuación, pausa, detención, retorno a base, intensidad y limpieza de la posición actual.
 - Selección de varias zonas y un único servicio `liectroux_zk901.clean_areas`.
 - Edición de zonas desde la tarjeta: crear, renombrar, cambiar tipo, mover y ajustar vértices, deshacer, descartar y eliminar.
@@ -14,6 +16,16 @@ Tarjeta Lovelace y custom integration de Home Assistant para controlar localment
 - Entidad de actualización para consultar e instalar releases estables emparejadas de la integración y la tarjeta.
 
 Las áreas prohibidas y objetos del sistema no se ofrecen como destinos de limpieza. La tarjeta usa las coordenadas que expone la integración para dibujar las zonas; no representa LiDAR, paredes ni obstáculos.
+
+## Interfaz
+
+La versión 0.5.0 recupera el componente principal y los controles de [Lovelace Xiaomi Vacuum Map Card](https://github.com/PiotrMachowski/lovelace-xiaomi-vacuum-map-card), adaptados a la API ZK901. Una imagen SVG local representa los datos disponibles y utiliza el contenedor, zoom, paneo y selección del frontend comunitario.
+
+La vista habitual muestra mapa, controles y estado. **Zonas guardadas**, **Editar zonas**, **Capas e historial** e **Información** abren paneles secundarios. Los errores relevantes se muestran directamente y las confirmaciones se presentan como avisos temporales. La edición conserva borradores, deshacer, validación, revisión del catálogo y guardado explícito.
+
+La card mantiene su configuración y recurso existentes. La integración, sus entidades, comandos, almacenamiento y captura autónoma conservan el funcionamiento de 0.4.0. [Procedencia, diferencias y validación visual](docs/UI_REBASE_REPORT.md).
+
+![Card ZK901 con datos simulados](docs/screenshots/card-0.5.0-desktop.png)
 
 ## Recorrido y reconstrucción
 
@@ -28,6 +40,8 @@ Los timeouts no reinician el cursor. Las interrupciones se señalan y se mantien
 **Limitación conocida:** después de una desconexión prolongada, un backlog grande puede agotar el tiempo de respuesta. No hay recuperación completa garantizada ni se sustituyen los puntos faltantes por líneas. La captura no envía comandos de movimiento o limpieza.
 
 ## Compatibilidad
+
+La versión **0.5.0** renueva el frontend sobre la base comunitaria. El backend conserva el código de 0.4.0; solo cambia su versión declarada para distribuir el paquete conjunto. No requiere migrar entidades, credenciales, zonas ni historial.
 
 La versión **0.4.0** incorpora captura autónoma, persistencia e historial de recorridos y cobertura estimada. La lectura incremental está validada previamente en LAN; la captura autónoma completa requiere aceptación física con esta versión.
 

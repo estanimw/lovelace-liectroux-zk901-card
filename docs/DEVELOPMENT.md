@@ -44,9 +44,22 @@ El build local y los tests no hablan con el robot, no leen credenciales ni insta
 
 La edición y lectura del mapa conserva el requisito de administrador. La reconexión solo restablece lecturas/suscripciones; la UI no reenvía acciones. El API tiene versión independiente del número de versión del bundle.
 
-### Frontend
+### Frontend 0.5.0
 
-- `src/zk901-card.ts`: componente, ciclo de vida, controles, plano, selector de zonas, borrador y mensajes de error.
+- `src/community/`: código recuperado de upstream `045c3ac`, con composición, estilos, objetos de selección, conversor, controles y navegación originales. La procedencia y las adaptaciones están registradas en `community-source-inventory.json` y `UI_REBASE_REPORT.md`.
+- `src/zk901-card.ts`: subclase de `CommunityMapCard`, adaptador de snapshots/acciones, imagen local, paneles secundarios y ciclo de vida. El `render()` principal heredado sigue construyendo la tarjeta.
+- `src/zk901-controller.ts`: estado, transacciones y editor persistente extraídos de 0.4.0. No renderiza otra tarjeta ni mantiene un segundo motor de navegación.
+- `src/model/map-surface.ts`: imagen SVG local y marco reversible de coordenadas. El conversor comunitario recibe tres puntos generados automáticamente.
+- `tests/browser/community-ui.test.mjs`: comparación visual con la base recuperada, móvil y temas, gestos, edición bajo transformación, convivencia de nombres y ciclo de vida de imágenes/suscripciones.
+- `tests/browser/map-surface.test.mjs`: compatibilidad con la transformación afín original y generación determinista de la imagen.
+- `tests/browser/fixture.mjs`: backend y componentes HA simulados, exclusivos de pruebas. La aplicación no instala esos componentes simulados.
+
+Las dependencias de gestos y geometría se restauran con las versiones fijadas en el lockfile de la base comunitaria. La suscripción ZK901 sigue utilizando la conexión de HA; no se instancia otro cliente WebSocket.
+
+Los avisos circulares del build proceden del grafo original `utils → MapMode → ServiceCallSchema → utils`. Los componentes se registran con nombres propios del fork; solo hay una card ZK901 de producción.
+
+### API y modelos frontend conservados
+
 - `src/data/zk901.ts`: único adaptador de API del componente.
 - `src/model/zone-geometry.ts`: proyección reversible y validación geométrica sin red.
 - `src/model/zone-draft.ts`: borrador, operaciones, deshacer, conflicto e incertidumbre.
@@ -74,7 +87,7 @@ El workflow de build adjunta los artefactos como artifact de GitHub Actions. El 
 
 ## Referencia del fork
 
-La base es [Lovelace Xiaomi Vacuum Map Card](https://github.com/PiotrMachowski/lovelace-xiaomi-vacuum-map-card). Se conserva MIT y atribución. Los presets, plantillas de marcas y recursos visuales ajenos se retiraron; revisar upstream antes de portar código evita reintroducir un flujo de control no compatible con ZK901.
+La base es [Lovelace Xiaomi Vacuum Map Card](https://github.com/PiotrMachowski/lovelace-xiaomi-vacuum-map-card). Se conserva MIT y atribución. El grafo fuente necesario del frontend comunitario fue recuperado en 0.5.0. Las opciones de otras marcas y los modos sin soporte ZK901 no se ofrecen. Revisar `UI_REBASE_REPORT.md` antes de modificar esta base evita reemplazar de nuevo sus componentes o reintroducir comandos incompatibles.
 
 ## Actualizador 0.3.0
 

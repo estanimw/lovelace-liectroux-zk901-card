@@ -1,0 +1,55 @@
+{
+    "map_modes": {
+        "default_templates": [
+            "vacuum_clean_segment",
+            "vacuum_clean_segment_with_blocking"
+        ],
+        "templates": {
+            "vacuum_clean_segment": {
+                "name": "Clean room",
+                "icon": "mdi:floor-plan",
+                "selection_type": "ROOM",
+                "repeats_type": "NONE",
+                "max_selections": 5,
+                "service_call_schema": {
+                    "service": "roomba_plus.clean_room",
+                    "service_data": {
+                        "entity_id": "[[entity_id]]",
+                        "room_name": "[[selection]]",
+                        "ordered": true
+                    }
+                }
+            },
+            "vacuum_clean_segment_two_pass": {
+                "name": "Clean room (two pass)",
+                "icon": "mdi:floor-plan",
+                "selection_type": "ROOM",
+                "repeats_type": "NONE",
+                "max_selections": 5,
+                "service_call_schema": {
+                    "service": "roomba_plus.clean_room",
+                    "service_data": {
+                        "entity_id": "[[entity_id]]",
+                        "room_name": "[[selection]]",
+                        "ordered": true,
+                        "two_pass": true
+                    }
+                }
+            },
+            "vacuum_clean_segment_with_blocking": {
+                "name": "Clean room (smart start)",
+                "icon": "mdi:door-closed",
+                "selection_type": "ROOM",
+                "repeats_type": "NONE",
+                "max_selections": 5,
+                "service_call_schema": {
+                    "service": "roomba_plus.smart_start",
+                    "service_data": {
+                        "entity_id": "[[entity_id]]",
+                        "rooms": "[[selection]]"
+                    }
+                }
+            }
+        }
+    }
+}
